@@ -1,4 +1,4 @@
-# Master of Computer Applications Main Project: Inkling
+# Inkling
 
 The Standard for Digital Literary Assets
 
