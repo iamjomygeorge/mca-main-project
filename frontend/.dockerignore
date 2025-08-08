@@ -1,0 +1,15 @@
+# Ignore the build output cache from Next.js, which is created inside this directory.
+.next
+
+# Ignore local environment variables.
+.env*
+.env*.local
+
+# A safeguard in case `npm install` is run here by mistake.
+node_modules
+
+# Ignore log files.
+npm-debug.log*
+
+# Ignore system files
+.DS_Store
