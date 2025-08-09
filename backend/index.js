@@ -1,13 +1,28 @@
-const http = require('http');
+const express = require('express');
+const pool = require('./src/config/database');
 
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({
-    message: 'Welcome to the Inkling backend'
-  }));
+const app = express();
+const PORT = process.env.PORT || 8080;
+
+app.use(express.json());
+
+app.get('/', (req, res) => {
+  res.json({ message: "Welcome to the Inkling Backend API!" });
 });
 
-const PORT = 8080;
-server.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+// A special test route to verify the database connection.
+app.get('/database-test', async (req, res) => {
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT NOW()');
+    res.json(result.rows[0]);
+    client.release();
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Database connection error");
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Backend server is running on http://localhost:${PORT}`);
 });
