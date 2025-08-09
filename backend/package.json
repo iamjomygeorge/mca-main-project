@@ -5,6 +5,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "migrate:create": "node-pg-migrate create",
+    "migrate:up": "node-pg-migrate up",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,10 +14,11 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "dotenv": "^17.2.1",
+    "node-pg-migrate": "^8.0.3",
     "nodemon": "^3.1.10"
   },
   "dependencies": {
-    "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "pg": "^8.16.3"
   }
