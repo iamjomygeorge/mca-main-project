@@ -52,6 +52,34 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id: bookId } = req.params;
+    const { userId } = req.user;
+
+    // 1. --- Authorization Check ---
+    const bookResult = await pool.query('SELECT author_id FROM books WHERE id = $1', [bookId]);
+
+    if (bookResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Book not found.' });
+    }
+
+    const authorId = bookResult.rows[0].author_id;
+
+    if (authorId !== userId) {
+      return res.status(403).json({ error: 'Forbidden: You are not the author of this book.' });
+    }
+
+    await pool.query('DELETE FROM books WHERE id = $1', [bookId]);
+
+    res.sendStatus(204);
+
+  } catch (err) {
+    console.error('Delete Book Error:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 router.post(
   '/',
   authenticateToken,
