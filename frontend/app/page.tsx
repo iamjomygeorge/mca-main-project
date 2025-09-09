@@ -22,7 +22,7 @@ export default function Home() {
               Browse Books
             </Link>
             <Link
-              href="/register"
+              href="/register?role=author"
               className="text-sm font-semibold leading-6 text-zinc-900 dark:text-zinc-50"
             >
               Become an Author <span aria-hidden="true">→</span>
