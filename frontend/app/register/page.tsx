@@ -28,13 +28,26 @@ export default function RegisterPage() {
         <form className="space-y-6">
           <div className="space-y-4">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Username <span className="text-red-500">*</span>
+              <label htmlFor="full-name" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Full Name <span className="text-red-500">*</span>
               </label>
               <div className="mt-1">
-                <input id="username" name="username" type="text" required className="relative block w-full appearance-none rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-zinc-900 placeholder-zinc-500 focus:z-10 focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:placeholder-zinc-400 sm:text-sm"/>
+                <input id="full-name" name="fullName" type="text" autoComplete="name" required className="relative block w-full appearance-none rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-zinc-900 placeholder-zinc-500 focus:z-10 focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:placeholder-zinc-400 sm:text-sm"/>
               </div>
             </div>
+
+            {isAuthorSignUp && (
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Username <span className="text-red-500">*</span>
+                </label>
+                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">This will be your unique, public handle (e.g., @johndoe).</p>
+                <div className="mt-1">
+                  <input id="username" name="username" type="text" required className="relative block w-full appearance-none rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-zinc-900 placeholder-zinc-500 focus:z-10 focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:placeholder-zinc-400 sm:text-sm"/>
+                </div>
+              </div>
+            )}
+
             <div>
               <label htmlFor="email-address" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Email address <span className="text-red-500">*</span>
@@ -43,6 +56,7 @@ export default function RegisterPage() {
                 <input id="email-address" name="email" type="email" autoComplete="email" required className="relative block w-full appearance-none rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-zinc-900 placeholder-zinc-500 focus:z-10 focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:placeholder-zinc-400 sm:text-sm"/>
               </div>
             </div>
+
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Password <span className="text-red-500">*</span>
@@ -52,6 +66,7 @@ export default function RegisterPage() {
               </div>
             </div>
           </div>
+
           <div>
             <button type="submit" className="group relative flex w-full justify-center rounded-md border border-transparent bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 dark:focus:ring-zinc-400">
               {isAuthorSignUp ? 'Create Author Account' : 'Sign Up'}
