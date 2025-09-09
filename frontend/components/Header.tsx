@@ -11,13 +11,16 @@ export default function Header() {
             <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">Inkling</span>
           </Link>
           <div className="flex items-center gap-4">
-            <Link href="/books" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">
-              Books
-            </Link>
-            <Link href="/login" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">
+            <Link 
+              href="/login" 
+              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50 transition-colors"
+            >
               Login
             </Link>
-            <Link href="/register" className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200">
+            <Link 
+              href="/register" 
+              className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-zinc-50 shadow-sm transition-colors hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            >
               Sign Up
             </Link>
           </div>
