@@ -3,7 +3,7 @@
 .env*.local
 
 #Dependencies
-node_modules/
+**/node_modules
 
 #Build files
 /backend/dist
@@ -32,7 +32,7 @@ pnpm-debug.log*
 #Testing
 /frontend/coverage
 
-# Dependencies
+#Dependencies
 /frontend/.pnp
 /frontend/.pnp.*
 
@@ -42,3 +42,9 @@ pnpm-debug.log*
 !/frontend/.yarn/plugins
 !/frontend/.yarn/releases
 !/frontend/.yarn/versions
+
+#Playwright Test Reports & Cache
+/frontend/test-results/
+/frontend/playwright-report/
+/frontend/blob-report/
+/frontend/playwright/.cache/
