@@ -1,4 +1,3 @@
-// This file handles all routes related to user data.
 const express = require('express');
 const pool = require('../config/database');
 const authenticateToken = require('../middleware/authenticateToken');
