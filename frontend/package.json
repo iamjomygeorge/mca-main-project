@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:playwright": "playwright test",
+    "test:playwright:ui": "playwright test --ui"
   },
   "dependencies": {
     "next": "15.5.0",
