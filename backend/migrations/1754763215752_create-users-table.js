@@ -2,14 +2,16 @@ exports.shorthands = undefined;
 
 exports.up = (pgm) => {
   pgm.createExtension('pgcrypto', { ifNotExists: true });
-
   pgm.createType('user_role', ['READER', 'AUTHOR', 'ADMIN']);
-
   pgm.createTable('users', {
     id: {
       type: 'uuid',
       primaryKey: true,
       default: pgm.func('gen_random_uuid()'),
+    },
+    full_name: {
+      type: 'varchar(255)',
+      notNull: true,
     },
     email: {
       type: 'text',
@@ -18,7 +20,7 @@ exports.up = (pgm) => {
     },
     username: {
       type: 'varchar(50)',
-      notNull: true,
+      notNull: false,
       unique: true,
     },
     password_hash: {
