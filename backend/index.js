@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const pool = require('./src/config/database');
 const authenticationRoutes = require('./src/api/authentication');
 const userRoutes = require('./src/api/userProfile.js');
@@ -7,6 +8,12 @@ const bookRoutes = require('./src/api/books');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+const corsOptions = {
+  origin: process.env.FRONTEND_URL,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use('/api/auth', authenticationRoutes);
