@@ -1,0 +1,44 @@
+"use client";
+
+import Link from 'next/link';
+import Image from 'next/image';
+import { useAuth } from '@/context/AuthContext';
+
+export default function Header() {
+  const { user, logout } = useAuth();
+
+  return (
+    <header className="border-b border-zinc-200 dark:border-zinc-800">
+      <div className="container mx-auto px-4">
+        <nav className="flex h-16 items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/logo.png" alt="Inkling Logo" width={32} height={32} className="h-8 w-8"/>
+            <span className="text-2xl font-bold">Inkling</span>
+          </Link>
+          <div className="flex items-center gap-4">
+            {user ? (
+              <>
+                <span>Hello, {user.full_name}</span>
+                <button 
+                  onClick={logout}
+                  className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="text-sm font-medium text-zinc-600 hover:text-zinc-900">
+                  Login
+                </Link>
+                <Link href="/register" className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-zinc-50 shadow-sm hover:bg-zinc-800">
+                  Sign Up
+                </Link>
+              </>
+            )}
+          </div>
+        </nav>
+      </div>
+    </header>
+  );
+}
