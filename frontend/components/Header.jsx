@@ -8,7 +8,7 @@ export default function Header() {
   const { user, logout } = useAuth();
 
   return (
-    <header className="border-b border-zinc-200 dark:border-zinc-800">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
       <div className="px-4 sm:px-6 lg:px-8">
         <nav className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
@@ -23,7 +23,6 @@ export default function Header() {
                     Admin Dashboard
                   </Link>
                 )}
-
                 <span>Hello, {user.full_name}</span>
                 <button 
                   onClick={logout}
