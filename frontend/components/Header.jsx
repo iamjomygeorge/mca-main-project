@@ -18,6 +18,12 @@ export default function Header() {
           <div className="flex items-center gap-4">
             {user ? (
               <>
+                {user.role === 'ADMIN' && (
+                  <Link href="/admin" className="text-sm font-medium text-sky-600 dark:text-sky-400 hover:underline">
+                    Admin Dashboard
+                  </Link>
+                )}
+
                 <span>Hello, {user.full_name}</span>
                 <button 
                   onClick={logout}
@@ -39,6 +45,6 @@ export default function Header() {
           </div>
         </nav>
       </div>
-    </header>
+    </header> 
   );
 }

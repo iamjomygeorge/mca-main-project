@@ -8,43 +8,48 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    if (storedToken) {
-      setToken(storedToken);
-    }
-  }, []);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (token) {
+    const initializeAuth = async () => {
+      const storedToken = localStorage.getItem('token');
+      if (storedToken) {
+        setToken(storedToken);
         try {
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
+            headers: { 'Authorization': `Bearer ${storedToken}` },
           });
           if (response.ok) {
-            const userData = await response.json();
-            setUser(userData);
+            setUser(await response.json());
           } else {
-            logout();
+            localStorage.removeItem('token');
           }
         } catch (error) {
-          console.error("Failed to fetch user", error);
-          logout();
+          console.error("Failed to fetch user on initial load", error);
+          localStorage.removeItem('token');
         }
       }
+      setLoading(false);
     };
-    fetchUser();
-  }, [token]);
+    initializeAuth();
+  }, []);
 
   const login = (newToken) => {
     localStorage.setItem('token', newToken);
     setToken(newToken);
-    router.push('/');
+    const fetchUser = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me`, {
+          headers: { 'Authorization': `Bearer ${newToken}` },
+        });
+        if (response.ok) {
+          setUser(await response.json());
+          router.push('/');
+        }
+      } catch (error) { console.error(error); }
+    };
+    fetchUser();
   };
 
   const logout = () => {
@@ -55,7 +60,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
