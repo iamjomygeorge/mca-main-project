@@ -9,9 +9,13 @@ exports.up = (pgm) => {
     },
     author_id: {
       type: 'uuid',
-      notNull: true,
+      notNull: false,
       references: '"users"(id)',
       onDelete: 'CASCADE',
+    },
+    author_name: {
+      type: 'varchar(255)',
+      notNull: true,
     },
     title: {
       type: 'varchar(255)',
