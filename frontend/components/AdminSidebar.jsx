@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Icons } from "@/components/Icons";
+import { Icons } from "./Icons"; 
 
 const navLinks = [
   { name: "Overview", href: "/admin", icon: Icons.overview },
@@ -10,6 +11,11 @@ const navLinks = [
     name: "Upload a classic Book",
     href: "/admin/books/upload",
     icon: Icons.upload,
+  },
+  {
+    name: "Change Password",
+    href: "/admin/change-password",
+    icon: Icons.password,
   },
 ];
 
