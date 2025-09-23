@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useState, useCallback } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
-import Link from "next/link";
 
 const StatCard = ({ title, value, icon: Icon, loading }) => (
   <div className="flex flex-col bg-white dark:bg-zinc-900/50 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800">
@@ -12,8 +13,8 @@ const StatCard = ({ title, value, icon: Icon, loading }) => (
       <Icon className="h-5 w-5 text-zinc-400 dark:text-zinc-500" />
     </div>
     <p className="mt-4 text-3xl font-semibold">
-      {loading ? (
-        <span className="text-zinc-300 dark:text-zinc-600">...</span>
+      {loading && value === null ? (
+        <span className="text-zinc-300 dark:text-zinc-600 animate-pulse">...</span>
       ) : (
         value
       )}
@@ -21,26 +22,87 @@ const StatCard = ({ title, value, icon: Icon, loading }) => (
   </div>
 );
 
-const QuickActionButton = ({ href, icon: Icon, children }) => (
-  <Link
-    href={href}
-    className="flex flex-col items-center justify-center gap-2 p-4 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors"
-  >
-    <Icon className="h-6 w-6 text-zinc-600 dark:text-zinc-400" />
-    <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-      {children}
-    </span>
-  </Link>
-);
-
 export default function AdminDashboardPage() {
-  const stats = {
-    totalReaders: 0,
-    totalAuthors: 0,
-    totalBooks: 0,
-    monthlySales: "0",
+  const { token, loading: authLoading } = useAuth();
+  const [stats, setStats] = useState(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchStats = useCallback(async () => {
+    if (!token) {
+      if (!authLoading) {
+        setError("You must be logged in to view this page.");
+      }
+      return;
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/stats/overview`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch dashboard statistics.');
+      }
+
+      const data = await response.json();
+      setStats(data);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      if (isInitialLoading) {
+        setIsInitialLoading(false);
+      }
+    }
+  }, [token, authLoading, isInitialLoading]);
+
+  useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+    
+    fetchStats();
+
+    const wsUrl = process.env.NEXT_PUBLIC_API_URL.replace(/^http/, 'ws');
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      console.log("WebSocket connection established");
+    };
+    
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === 'USER_TABLE_UPDATED') {
+          console.log("Update signal received. Refetching stats...");
+          fetchStats();
+        }
+      } catch (e) {
+        console.error("Failed to parse WebSocket message:", e);
+      }
+    };
+    
+    ws.onerror = (err) => {
+      console.error("WebSocket error:", err);
+    };
+    
+    ws.onclose = () => {
+      console.log("WebSocket connection closed");
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [authLoading, fetchStats]);
+
+  const displayValue = (statValue) => {
+    if (error && !stats) return "-";
+    return stats ? statValue.toLocaleString() : 0;
   };
-  const statsLoading = false;
 
   return (
     <div className="space-y-10">
@@ -51,30 +113,30 @@ export default function AdminDashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+      {error && (
+        <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-500/30">
+          <p className="text-sm font-medium text-red-800 dark:text-red-200">{error}</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
         <StatCard
           title="Total Readers"
-          value={stats?.totalReaders.toLocaleString()}
+          value={displayValue(stats?.totalReaders)}
           icon={Icons.users}
-          loading={statsLoading}
+          loading={isInitialLoading}
         />
         <StatCard
           title="Total Authors"
-          value={stats?.totalAuthors.toLocaleString()}
+          value={displayValue(stats?.totalAuthors)}
           icon={Icons.users}
-          loading={statsLoading}
+          loading={isInitialLoading}
         />
         <StatCard
           title="Total Books"
-          value={stats?.totalBooks.toLocaleString()}
+          value={displayValue(stats?.totalBooks)}
           icon={Icons.book}
-          loading={statsLoading}
-        />
-        <StatCard
-          title="Monthly Sales"
-          value={`₹${stats?.monthlySales}`}
-          icon={Icons.overview}
-          loading={statsLoading}
+          loading={isInitialLoading}
         />
       </div>
     </div>

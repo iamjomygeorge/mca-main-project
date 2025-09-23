@@ -24,6 +24,11 @@ router.post('/register', registrationRules(), validate, async (req, res) => {
       [fullName, username || null, email, passwordHash, userRole]
     );
 
+    const broadcast = req.app.get('broadcast');
+    if (broadcast) {
+      broadcast({ type: 'USER_TABLE_UPDATED' });
+    }
+
     res.status(201).json(newUser.rows[0]);
   } catch (err) {
     console.error('Registration Error:', err.message);
