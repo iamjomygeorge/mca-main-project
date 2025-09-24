@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-const http = require('http'); // Import the http module
-const { WebSocketServer } = require('ws'); // Import the WebSocket server
+const http = require('http');
+const { WebSocketServer } = require('ws');
 const pool = require('./src/config/database');
 const authenticationRoutes = require('./src/api/authentication');
 const userRoutes = require('./src/api/userProfile.js');
@@ -9,8 +9,8 @@ const bookRoutes = require('./src/api/books');
 const adminRoutes = require('./src/api/admin');
 
 const app = express();
-const server = http.createServer(app); // Create an HTTP server using the Express app
-const wss = new WebSocketServer({ server }); // Attach the WebSocket server to the HTTP server
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server });
 
 // This function will be used to send messages to all connected clients
 const broadcast = (data) => {
@@ -31,8 +31,13 @@ wss.on('connection', ws => {
     console.log('Client disconnected');
   });
   ws.on('error', (error) => {
-    console.error('WebSocket error:', error);
+    console.error('WebSocket connection error:', error);
   });
+});
+
+// Add this block to catch server-level WebSocket errors
+wss.on('error', (error) => {
+  console.error('WebSocket Server Error:', error);
 });
 
 const PORT = process.env.PORT || 8080;
