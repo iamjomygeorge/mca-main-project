@@ -19,7 +19,7 @@ router.get("/overview", authenticateToken, isAdmin, async (req, res) => {
       totalReadersResult,
     ] = await Promise.all([
       pool.query('SELECT COUNT(*) FROM books'),
-      pool.query('SELECT COUNT(*) FROM users WHERE role = $1', ['AUTHOR']),
+      pool.query('SELECT COUNT(*) FROM authors'),
       pool.query('SELECT COUNT(*) FROM users WHERE role = $1', ['READER']),
     ]);
 

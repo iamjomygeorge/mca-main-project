@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 
@@ -64,7 +64,7 @@ const FileInput = ({
             <img
               src={previewUrl}
               alt="Preview"
-              className="mx-auto h-32 w-auto rounded-md"
+              className="mx-auto h-32 w-auto object-contain rounded-md"
             />
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
               {file.name}
@@ -111,7 +111,9 @@ const FileInput = ({
 export default function AdminUploadForm() {
   const { token } = useAuth();
   const [title, setTitle] = useState("");
-  const [authorName, setAuthorName] = useState("");
+  const [authors, setAuthors] = useState([]);
+  const [selectedAuthorId, setSelectedAuthorId] = useState("");
+  const [newAuthorName, setNewAuthorName] = useState("");
   const [description, setDescription] = useState("");
   const [coverImageFile, setCoverImageFile] = useState(null);
   const [bookFile, setBookFile] = useState(null);
@@ -122,16 +124,34 @@ export default function AdminUploadForm() {
   const coverImageInputRef = useRef(null);
   const bookFileInputRef = useRef(null);
 
+  useEffect(() => {
+    if (!token) return;
+    const fetchAuthors = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/authors`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error("Failed to fetch authors");
+        const data = await response.json();
+        setAuthors(data);
+      } catch (err) {
+        setError("Could not load author list: " + err.message);
+      }
+    };
+    fetchAuthors();
+  }, [token, success]); // Refetch authors after a successful upload
+
   const coverImagePreviewUrl = coverImageFile
     ? URL.createObjectURL(coverImageFile)
     : null;
   const bookFilePreviewUrl = bookFile
-    ? "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZHRoPSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWJvb2stbWFyayI+PHBhdGggZD0iTTQgMTkuNXYtMTVBMiS1IDIuNSAwIDAgMSA2LjUgMkgMjB2MjBINi41YTIuNSAyLjUgMCAwIDEgMC01SDIwIi8+PHBhdGggZD0ibTkgMTAtMyAzIDUtMy01LTMgMyAzIi8+PC9zdmc+"
+    ? "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZHRoPSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik00IDE5LjV2LTE1QTIuNSAyLjUgMCAwIDEgNi41IDJIMjB2MjBINi41YTIuNSAyLjUgMCAwIDEgMC01SDIwIi8+PC9zdmc+"
     : null;
 
   const clearForm = () => {
     setTitle("");
-    setAuthorName("");
+    setSelectedAuthorId("");
+    setNewAuthorName("");
     setDescription("");
     setCoverImageFile(null);
     setBookFile(null);
@@ -144,18 +164,40 @@ export default function AdminUploadForm() {
     setSuccess("");
     setError(null);
 
-    if (!bookFile || !title || !authorName || !coverImageFile) {
-      setError("Title, Author, Cover Image, and EPUB File are required.");
-      return;
+    const authorIsSelected = selectedAuthorId && selectedAuthorId !== 'new';
+    const newAuthorIsEntered = selectedAuthorId === 'new' && newAuthorName.trim() !== '';
+
+    if (!title.trim()) {
+        setError("Book Title is required.");
+        return;
+    }
+    if (!authorIsSelected && !newAuthorIsEntered) {
+        setError("Please select an author or add a new one.");
+        return;
+    }
+    if (!coverImageFile) {
+        setError("A Cover Image is required.");
+        return;
+    }
+    if (!bookFile) {
+        setError("An EPUB file is required.");
+        return;
     }
 
     setIsSubmitting(true);
     const formData = new FormData();
     formData.append("title", title);
-    formData.append("author_name", authorName);
     formData.append("description", description);
     formData.append("bookFile", bookFile);
     formData.append("coverImageFile", coverImageFile);
+
+    // ## FINAL CORRECTED LOGIC ##
+    // This sends the data in the format the backend logic expects.
+    if (authorIsSelected) {
+      formData.append("authorId", selectedAuthorId);
+    } else if (newAuthorIsEntered) {
+      formData.append("newAuthorName", newAuthorName.trim());
+    }
 
     try {
       const response = await fetch(
@@ -172,7 +214,7 @@ export default function AdminUploadForm() {
         throw new Error(errorData.error || "Failed to upload book");
       }
       const uploadedBook = await response.json();
-      setSuccess(`Book "${uploadedBook.title}" uploaded successfully!`);
+      setSuccess(`Book "${uploadedBook.title}" uploaded successfully.`);
       clearForm();
     } catch (err) {
       setError(`${err.message}`);
@@ -187,7 +229,7 @@ export default function AdminUploadForm() {
     "block text-sm font-medium leading-6 text-zinc-900 dark:text-zinc-100";
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-10">
+    <form onSubmit={handleSubmit} className="space-y-10" noValidate>
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Upload a New Book</h1>
         <p className="mt-2 text-zinc-500 dark:text-zinc-400">
@@ -231,21 +273,42 @@ export default function AdminUploadForm() {
             </div>
           </div>
           <div>
-            <label htmlFor="authorName" className={commonLabelClasses}>
-              Author's Name <span className="text-red-500">*</span>
+            <label htmlFor="author" className={commonLabelClasses}>
+              Author <span className="text-red-500">*</span>
+            </label>
+            <div className="mt-2">
+              <select
+                id="author"
+                value={selectedAuthorId}
+                onChange={(e) => setSelectedAuthorId(e.target.value)}
+                className={commonInputClasses}
+              >
+                <option value="" disabled>Select an Author</option>
+                {authors.map((author) => (
+                  <option key={author.id} value={author.id}>{author.name}</option>
+                ))}
+                <option value="new">Add New Author</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {selectedAuthorId === 'new' && (
+          <div>
+            <label htmlFor="newAuthorName" className={commonLabelClasses}>
+              New Author's Name <span className="text-red-500">*</span>
             </label>
             <div className="mt-2">
               <input
                 type="text"
-                id="authorName"
-                value={authorName}
-                onChange={(e) => setAuthorName(e.target.value)}
-                required
+                id="newAuthorName"
+                value={newAuthorName}
+                onChange={(e) => setNewAuthorName(e.target.value)}
                 className={commonInputClasses}
               />
             </div>
           </div>
-        </div>
+        )}
 
         <div>
           <label htmlFor="description" className={commonLabelClasses}>
@@ -267,7 +330,7 @@ export default function AdminUploadForm() {
         <h2 className="text-lg font-semibold border-b pb-4 border-zinc-200 dark:border-zinc-700">
           Book Files
         </h2>
-        <div className="grid grid-cols-1 gap-y-8 lg:grid-cols-3 lg:gap-x-8">
+        <div className="grid grid-cols-1 gap-y-8 lg:grid-cols-2 lg:gap-x-8">
           <FileInput
             label="Book Cover"
             required

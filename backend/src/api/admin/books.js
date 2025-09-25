@@ -18,46 +18,59 @@ router.post(
   authenticateToken,
   isAdmin,
   upload.fields([
-    { name: 'bookFile', maxCount: 1 },
     { name: 'coverImageFile', maxCount: 1 },
+    { name: 'bookFile', maxCount: 1 },
   ]),
   async (req, res) => {
+    const client = await pool.connect();
+    
     try {
-      const { title, author_name, description } = req.body;
+      await client.query('BEGIN');
+
+      const { title, description, authorId: existingAuthorId, newAuthorName } = req.body;
       const bookFile = req.files['bookFile'] ? req.files['bookFile'][0] : null;
       const coverImageFile = req.files['coverImageFile'] ? req.files['coverImageFile'][0] : null;
 
-      if (!title || !bookFile || !author_name) {
-        return res.status(400).json({ error: 'Title, author name, and a book file are required.' });
+      if (!title || !bookFile || (!existingAuthorId && !newAuthorName)) {
+        return res.status(400).json({ error: 'Title, author, and a book file are required.' });
       }
 
-      const bookFileUrl = await uploadFileToS3(
-        bookFile.buffer,
-        bookFile.originalname,
-        bookFile.mimetype,
-        'books'
-      );
+      let authorId = existingAuthorId;
 
+      if (newAuthorName) {
+        const newAuthorResult = await client.query(
+          'INSERT INTO authors (name) VALUES ($1) RETURNING id',
+          [newAuthorName.trim()]
+        );
+        authorId = newAuthorResult.rows[0].id;
+      }
+      
+      if (!authorId) {
+        return res.status(400).json({ error: 'Could not determine author ID.' });
+      }
+
+      const bookFileUrl = await uploadFileToS3(bookFile.buffer, bookFile.originalname, bookFile.mimetype, 'books');
       let coverImageUrl = null;
       if (coverImageFile) {
-        coverImageUrl = await uploadFileToS3(
-          coverImageFile.buffer,
-          coverImageFile.originalname,
-          coverImageFile.mimetype,
-          'covers'
-        );
+        coverImageUrl = await uploadFileToS3(coverImageFile.buffer, coverImageFile.originalname, coverImageFile.mimetype, 'covers');
       }
 
-      const newBook = await pool.query(
-        'INSERT INTO books (author_name, title, description, book_file_url, cover_image_url) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [author_name, title, description, bookFileUrl, coverImageUrl]
+      const newBookResult = await client.query(
+        'INSERT INTO books (title, description, author_id, book_file_url, cover_image_url) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [title, description, authorId, bookFileUrl, coverImageUrl]
       );
 
-      res.status(201).json(newBook.rows[0]);
+      await client.query('COMMIT'); 
+      
+      res.status(201).json(newBookResult.rows[0]);
 
     } catch (err) {
-      console.error('Admin Book Upload Error:', err.message);
+      await client.query('ROLLBACK'); 
+      console.error('Admin Book Upload Error:', err);
       res.status(500).json({ error: 'Internal Server Error' });
+    } finally {
+      // Release the client back to the pool
+      client.release(); 
     }
   }
 );

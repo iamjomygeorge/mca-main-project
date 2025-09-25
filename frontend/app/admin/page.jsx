@@ -26,6 +26,7 @@ export default function AdminDashboardPage() {
   const { token, loading: authLoading } = useAuth();
   const [stats, setStats] = useState(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false); // New state for refresh button
   const [error, setError] = useState(null);
 
   const fetchStats = useCallback(async () => {
@@ -34,6 +35,10 @@ export default function AdminDashboardPage() {
         setError("You must be logged in to view this page.");
       }
       return;
+    }
+
+    if (!isInitialLoading) {
+      setIsRefreshing(true); // Start spinner for manual refreshes
     }
 
     try {
@@ -57,47 +62,16 @@ export default function AdminDashboardPage() {
       if (isInitialLoading) {
         setIsInitialLoading(false);
       }
+      setIsRefreshing(false); // Always stop spinner
     }
   }, [token, authLoading, isInitialLoading]);
 
+  // Simplified useEffect to fetch stats only on load
   useEffect(() => {
-    if (authLoading) {
-      return;
+    if (token) {
+      fetchStats();
     }
-    
-    fetchStats();
-
-    const wsUrl = process.env.NEXT_PUBLIC_API_URL.replace(/^http/, 'ws');
-    const ws = new WebSocket(wsUrl);
-
-    ws.onopen = () => {
-      console.log("WebSocket connection established");
-    };
-    
-    ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        if (message.type === 'USER_TABLE_UPDATED') {
-          console.log("Update signal received. Refetching stats...");
-          fetchStats();
-        }
-      } catch (e) {
-        console.error("Failed to parse WebSocket message:", e);
-      }
-    };
-    
-    ws.onerror = (err) => {
-      console.error("WebSocket error:", err);
-    };
-    
-    ws.onclose = () => {
-      console.log("WebSocket connection closed");
-    };
-
-    return () => {
-      ws.close();
-    };
-  }, [authLoading, fetchStats]);
+  }, [token, fetchStats]);
 
   const displayValue = (statValue) => {
     if (error && !stats) return "-";
@@ -106,11 +80,22 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-10">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
-        <p className="mt-2 text-zinc-500 dark:text-zinc-400">
-          Here's a snapshot of the platform.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
+          <p className="mt-2 text-zinc-500 dark:text-zinc-400">
+            Here's a snapshot of the platform.
+          </p>
+        </div>
+        <button
+          onClick={fetchStats}
+          disabled={isRefreshing}
+          className="p-2 rounded-full text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="Refresh stats"
+        >
+          {/* Ensure you have a 'refresh' icon in your Icons component */}
+          <Icons.refresh className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
       {error && (
