@@ -14,7 +14,9 @@ const StatCard = ({ title, value, icon: Icon, loading }) => (
     </div>
     <p className="mt-4 text-3xl font-semibold">
       {loading && value === null ? (
-        <span className="text-zinc-300 dark:text-zinc-600 animate-pulse">...</span>
+        <span className="text-zinc-300 dark:text-zinc-600 animate-pulse">
+          ...
+        </span>
       ) : (
         value
       )}
@@ -26,7 +28,7 @@ export default function AdminDashboardPage() {
   const { token, loading: authLoading } = useAuth();
   const [stats, setStats] = useState(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false); // New state for refresh button
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
   const fetchStats = useCallback(async () => {
@@ -38,19 +40,24 @@ export default function AdminDashboardPage() {
     }
 
     if (!isInitialLoading) {
-      setIsRefreshing(true); // Start spinner for manual refreshes
+      setIsRefreshing(true);
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/stats/overview`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/stats/overview`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch dashboard statistics.');
+        throw new Error(
+          errorData.error || "Failed to fetch dashboard statistics."
+        );
       }
 
       const data = await response.json();
@@ -62,11 +69,10 @@ export default function AdminDashboardPage() {
       if (isInitialLoading) {
         setIsInitialLoading(false);
       }
-      setIsRefreshing(false); // Always stop spinner
+      setIsRefreshing(false);
     }
   }, [token, authLoading, isInitialLoading]);
 
-  // Simplified useEffect to fetch stats only on load
   useEffect(() => {
     if (token) {
       fetchStats();
@@ -93,14 +99,17 @@ export default function AdminDashboardPage() {
           className="p-2 rounded-full text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Refresh stats"
         >
-          {/* Ensure you have a 'refresh' icon in your Icons component */}
-          <Icons.refresh className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <Icons.refresh
+            className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`}
+          />
         </button>
       </div>
 
       {error && (
         <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-500/30">
-          <p className="text-sm font-medium text-red-800 dark:text-red-200">{error}</p>
+          <p className="text-sm font-medium text-red-800 dark:text-red-200">
+            {error}
+          </p>
         </div>
       )}
 
