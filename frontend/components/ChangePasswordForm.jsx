@@ -1,5 +1,3 @@
-// frontend/components/ChangePasswordForm.jsx
-
 "use client";
 
 import { useState } from "react";
@@ -40,7 +38,7 @@ export default function ChangePasswordForm() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/user/password`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/password`,
         {
           method: "PUT",
           headers: {
@@ -54,15 +52,38 @@ export default function ChangePasswordForm() {
         }
       );
 
-      const responseData = await response.json();
       if (!response.ok) {
-        throw new Error(responseData.error || "Failed to update password.");
+        let errorMsg = "Failed to update password. Please try again.";
+        try {
+          const errorData = await response.json();
+          if (errorData && errorData.error) {
+            errorMsg = errorData.error;
+          } else if (
+            errorData &&
+            errorData.errors &&
+            Array.isArray(errorData.errors) &&
+            errorData.errors.length > 0
+          ) {
+            const firstError = errorData.errors[0];
+            errorMsg = Object.values(firstError)[0] || errorMsg;
+          }
+        } catch (jsonError) {}
+        throw new Error(errorMsg);
       }
 
-      setSuccess("Password updated successfully!");
+      let responseData;
+      try {
+        responseData = await response.json();
+        setSuccess(responseData.message || "Password updated successfully!");
+      } catch (jsonError) {
+        setSuccess("Password updated successfully!");
+      }
+
       clearForm();
     } catch (err) {
-      setError(err.message);
+      setError(
+        err.message || "An unexpected error occurred. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -78,7 +99,7 @@ export default function ChangePasswordForm() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Change Password</h1>
         <p className="mt-2 text-zinc-500 dark:text-zinc-400">
-          Update your password below. Make sure it's a strong one!
+          Update your administrator password below.
         </p>
       </div>
 
@@ -103,10 +124,7 @@ export default function ChangePasswordForm() {
         </h2>
         <div className="space-y-6">
           <div>
-            <label
-              htmlFor="currentPassword"
-              className={commonLabelClasses}
-            >
+            <label htmlFor="currentPassword" className={commonLabelClasses}>
               Current Password <span className="text-red-500">*</span>
             </label>
             <div className="mt-2">
@@ -136,10 +154,7 @@ export default function ChangePasswordForm() {
             </div>
           </div>
           <div>
-            <label
-              htmlFor="confirmPassword"
-              className={commonLabelClasses}
-            >
+            <label htmlFor="confirmPassword" className={commonLabelClasses}>
               Confirm New Password <span className="text-red-500">*</span>
             </label>
             <div className="mt-2">
