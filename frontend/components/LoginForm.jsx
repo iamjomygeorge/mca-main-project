@@ -1,36 +1,94 @@
 "use client";
 
-import Link from 'next/link';
-import { useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import Link from "next/link";
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { Icons } from "@/components/Icons";
 
 export default function LoginForm() {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [otpCode, setOtpCode] = useState("");
   const [error, setError] = useState(null);
+  const [message, setMessage] = useState(null);
 
-  const handleSubmit = async (e) => {
+  const [step, setStep] = useState("credentials");
+  const [tempToken, setTempToken] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const commonInputClasses =
+    "block w-full appearance-none rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-zinc-900 placeholder-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm";
+  const commonLabelClasses =
+    "block text-sm font-medium text-zinc-900 dark:text-zinc-100";
+  const commonButtonClasses =
+    "flex w-full justify-center items-center gap-2 rounded-md border border-transparent bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed";
+
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setMessage(null);
+    setIsLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to log in');
-      }
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
       const data = await response.json();
-      login(data.token);
 
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to log in");
+      }
+
+      if (data.twoFactorRequired) {
+        setStep("otp");
+        setTempToken(data.tempToken);
+        setMessage(
+          data.message || "A verification code has been sent to your email."
+        );
+      } else {
+        login(data.token);
+      }
     } catch (err) {
       setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setMessage(null);
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login-2fa`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tempToken: tempToken, token: otpCode }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to verify 2FA code.");
+      }
+
+      login(data.token);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -38,39 +96,123 @@ export default function LoginForm() {
     <div className="w-full max-w-md space-y-6">
       <div>
         <h2 className="text-center text-3xl font-bold tracking-tight">
-          Log in to your account
+          {step === "credentials"
+            ? "Log in to your account"
+            : "Enter Verification Code"}
         </h2>
         <p className="mt-2 text-center text-sm text-zinc-600 dark:text-zinc-400">
-          Or{' '}
-          <Link href="/register" className="font-medium text-sky-600 hover:text-sky-500">
-            create a new account
-          </Link>
+          {step === "credentials" && (
+            <>
+              Or{" "}
+              <Link
+                href="/register"
+                className="font-medium text-sky-600 hover:text-sky-500"
+              >
+                create a new account
+              </Link>
+            </>
+          )}
         </p>
       </div>
-      <form className="space-y-6" onSubmit={handleSubmit}>
-        {error && <p className="text-center text-sm text-red-500">{error}</p>}
-        <div>
-          <label htmlFor="email-address" className="block text-sm font-medium">
-            Email address <span className="text-red-500">*</span>
-          </label>
-          <div className="mt-1">
-            <input id="email-address" name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="block w-full appearance-none rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-zinc-900 placeholder-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm"/>
+
+      {error && <p className="text-center text-sm text-red-500">{error}</p>}
+      {message && (
+        <p className="text-center text-sm text-blue-500">{message}</p>
+      )}
+
+      {step === "credentials" ? (
+        <form className="space-y-6" onSubmit={handlePasswordSubmit}>
+          <div>
+            <label htmlFor="email-address" className={commonLabelClasses}>
+              Email address <span className="text-red-500">*</span>
+            </label>
+            <div className="mt-1">
+              <input
+                id="email-address"
+                name="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className={commonInputClasses}
+              />
+            </div>
           </div>
-        </div>
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium">
-            Password <span className="text-red-500">*</span>
-          </label>
-          <div className="mt-1">
-            <input id="password" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="block w-full appearance-none rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-zinc-900 placeholder-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm"/>
+          <div>
+            <label htmlFor="password" className={commonLabelClasses}>
+              Password <span className="text-red-500">*</span>
+            </label>
+            <div className="mt-1">
+              <input
+                id="password"
+                name="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className={commonInputClasses}
+              />
+            </div>
           </div>
-        </div>
-        <div>
-          <button type="submit" className="flex w-full justify-center rounded-md border border-transparent bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200">
-            Log In
-          </button>
-        </div>
-      </form>
+          <div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={commonButtonClasses}
+            >
+              {isLoading ? <Icons.spinner className="h-5 w-5" /> : null}
+              {isLoading ? "Logging in..." : "Log In"}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <form className="space-y-6" onSubmit={handleOtpSubmit}>
+          <div>
+            <label htmlFor="otp-code" className={commonLabelClasses}>
+              6-Digit Code <span className="text-red-500">*</span>
+            </label>
+            <div className="mt-1">
+              <input
+                id="otp-code"
+                name="otpCode"
+                type="text"
+                inputMode="numeric"
+                pattern="\d{6}"
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                required
+                className={commonInputClasses}
+                placeholder="Check your email"
+              />
+            </div>
+          </div>
+          <div>
+            <button
+              type="submit"
+              disabled={isLoading || otpCode.length !== 6}
+              className={commonButtonClasses}
+            >
+              {isLoading ? <Icons.spinner className="h-5 w-5" /> : null}
+              {isLoading ? "Verifying..." : "Verify & Log In"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStep("credentials");
+                setError(null);
+                setMessage(null);
+                setTempToken(null);
+                setOtpCode("");
+              }}
+              disabled={isLoading}
+              className="mt-4 w-full text-sm text-zinc-600 dark:text-zinc-400 hover:underline"
+            >
+              Back to login
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

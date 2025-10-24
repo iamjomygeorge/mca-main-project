@@ -17,8 +17,8 @@ const navLinks = [
     icon: Icons.book,
   },
   {
-    name: "Change Password",
-    href: "/admin/change-password",
+    name: "Account Settings",
+    href: "/admin/account",
     icon: Icons.password,
   },
 ];

@@ -1,7 +1,13 @@
 "use client";
 
-import { createContext, useState, useContext, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import {
+  createContext,
+  useState,
+  useContext,
+  useEffect,
+  useCallback,
+} from "react";
+import { useRouter } from "next/navigation";
 
 const AuthContext = createContext(null);
 
@@ -11,56 +17,75 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    const initializeAuth = async () => {
-      const storedToken = localStorage.getItem('token');
-      if (storedToken) {
-        setToken(storedToken);
-        try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me`, {
-            headers: { 'Authorization': `Bearer ${storedToken}` },
-          });
-          if (response.ok) {
-            setUser(await response.json());
-          } else {
-            localStorage.removeItem('token');
-          }
-        } catch (error) {
-          console.error("Failed to fetch user on initial load", error);
-          localStorage.removeItem('token');
-        }
-      }
+  const fetchUser = useCallback(async (currentToken) => {
+    if (!currentToken) {
+      setUser(null);
       setLoading(false);
-    };
-    initializeAuth();
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/users/me`,
+        {
+          headers: { Authorization: `Bearer ${currentToken}` },
+        }
+      );
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+      } else {
+        localStorage.removeItem("token");
+        setToken(null);
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch user:", error);
+      localStorage.removeItem("token");
+      setToken(null);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    const storedToken = localStorage.getItem("token");
+    if (storedToken) {
+      setToken(storedToken);
+      fetchUser(storedToken);
+    } else {
+      setLoading(false);
+    }
+  }, [fetchUser]);
+
   const login = (newToken) => {
-    localStorage.setItem('token', newToken);
+    localStorage.setItem("token", newToken);
     setToken(newToken);
-    const fetchUser = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me`, {
-          headers: { 'Authorization': `Bearer ${newToken}` },
-        });
-        if (response.ok) {
-          setUser(await response.json());
-          router.push('/');
-        }
-      } catch (error) { console.error(error); }
-    };
-    fetchUser();
+    fetchUser(newToken).then(() => {
+      router.push("/");
+    });
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem("token");
     setToken(null);
     setUser(null);
-    router.push('/login');
+    router.push("/login");
   };
 
+  const refreshUser = useCallback(() => {
+    if (token) {
+      fetchUser(token);
+    }
+  }, [token, fetchUser]);
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, token, loading, login, logout, refreshUser }}
+    >
       {children}
     </AuthContext.Provider>
   );
