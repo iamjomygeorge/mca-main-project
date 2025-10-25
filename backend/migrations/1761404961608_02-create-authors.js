@@ -7,15 +7,16 @@ exports.up = (pgm) => {
       primaryKey: true,
       default: pgm.func("gen_random_uuid()"),
     },
-    name: {
-      type: "varchar(255)",
-      notNull: true,
-    },
     user_id: {
       type: "uuid",
+      notNull: false,
       references: '"users"(id)',
       onDelete: "SET NULL",
       unique: true,
+    },
+    name: {
+      type: "varchar(255)",
+      notNull: true,
     },
     created_at: {
       type: "timestamp with time zone",
