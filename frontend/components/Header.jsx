@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Header() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
@@ -21,35 +21,47 @@ export default function Header() {
             />
             <span className="text-2xl font-bold">Inkling</span>
           </Link>
+
           <div className="flex items-center gap-4">
-            {user ? (
+            {loading ? (
+              <div className="h-5 w-20 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700"></div>
+            ) : user ? (
               <>
                 {user.role === "ADMIN" && (
                   <Link
                     href="/admin"
                     className="text-sm font-medium text-sky-600 dark:text-sky-400 hover:underline"
                   >
-                    Administrator Dashboard
+                    Admin Dashboard
                   </Link>
                 )}
+                {user.role === "AUTHOR" && (
+                  <Link
+                    href="/author"
+                    className="text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
+                  >
+                    Author Dashboard
+                  </Link>
+                )}
+
                 <button
                   onClick={logout}
-                  className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
+                  className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100"
                 >
-                  Logout
+                  Logout ({user.email})
                 </button>
               </>
             ) : (
               <>
                 <Link
                   href="/login"
-                  className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
+                  className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
                 >
                   Login
                 </Link>
                 <Link
                   href="/register"
-                  className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-zinc-50 shadow-sm hover:bg-zinc-800"
+                  className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-zinc-50 shadow-sm hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
                 >
                   Sign Up
                 </Link>

@@ -103,13 +103,14 @@ export default function LoginForm() {
         <p className="mt-2 text-center text-sm text-zinc-600 dark:text-zinc-400">
           {step === "credentials" && (
             <>
-              Or{" "}
+              For both Readers and Authors. Or{" "}
               <Link
                 href="/register"
-                className="font-medium text-sky-600 hover:text-sky-500"
+                className="font-medium text-sky-600 hover:text-sky-500 dark:text-sky-400 dark:hover:text-sky-300"
               >
                 create a new account
               </Link>
+              .
             </>
           )}
         </p>
@@ -133,6 +134,7 @@ export default function LoginForm() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
                 required
                 className={commonInputClasses}
               />
@@ -149,6 +151,7 @@ export default function LoginForm() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 required
                 className={commonInputClasses}
               />
