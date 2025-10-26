@@ -91,10 +91,15 @@ router.post(
       return res.status(400).json({ errors: errorMessages });
     }
 
+    const client = await pool.connect();
+
     try {
-      const authorResult = await pool.query(
+      await client.query("BEGIN");
+      const userId = req.user.userId;
+
+      const authorResult = await client.query(
         "SELECT id FROM authors WHERE user_id = $1",
-        [req.user.userId]
+        [userId]
       );
       const authorId = authorResult.rows[0].id;
 
@@ -102,12 +107,16 @@ router.post(
       const bookFile = req.files?.["bookFile"]?.[0];
       const coverImageFile = req.files?.["coverImageFile"]?.[0];
 
-      if (!bookFile)
+      if (!bookFile) {
+        await client.query("ROLLBACK");
         return res
           .status(400)
           .json({ errors: ["Book file (EPUB) is required."] });
-      if (!coverImageFile)
+      }
+      if (!coverImageFile) {
+        await client.query("ROLLBACK");
         return res.status(400).json({ errors: ["Cover image is required."] });
+      }
 
       const finalCurrency = currency || "INR";
 
@@ -124,7 +133,7 @@ router.post(
         "covers/author"
       );
 
-      const newBook = await pool.query(
+      const newBookResult = await client.query(
         `INSERT INTO books
            (author_id, title, description, book_file_url, cover_image_url, price, currency)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -139,13 +148,24 @@ router.post(
           finalCurrency,
         ]
       );
+      const newBook = newBookResult.rows[0];
 
-      res.status(201).json(newBook.rows[0]);
+      await client.query(
+        "INSERT INTO user_library (user_id, book_id) VALUES ($1, $2) ON CONFLICT (user_id, book_id) DO NOTHING",
+        [userId, newBook.id]
+      );
+
+      await client.query("COMMIT");
+
+      res.status(201).json(newBook);
     } catch (err) {
+      await client.query("ROLLBACK");
       console.error("Author Book Upload Error:", err.message, err.stack);
       res
         .status(500)
         .json({ errors: ["Internal Server Error during book upload."] });
+    } finally {
+      client.release();
     }
   }
 );
