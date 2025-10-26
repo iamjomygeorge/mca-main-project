@@ -12,6 +12,8 @@ const cookieParser = require('cookie-parser');
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 const corsOptions = {
   origin: process.env.FRONTEND_URL,
   optionsSuccessStatus: 200,
@@ -47,7 +49,6 @@ app.get("/database-test", async (req, res) => {
   }
 });
 
-// Start the server
 app.listen(PORT, () => {
   console.log(`Backend server is running on http://localhost:${PORT}`);
 });
