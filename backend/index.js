@@ -8,6 +8,7 @@ const adminRoutes = require("./src/api/admin");
 const authorRoutes = require("./src/api/author");
 const webhookRoutes = require("./src/api/webhooks");
 const purchaseRoutes = require("./src/api/purchase");
+const cookieParser = require('cookie-parser');
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 8080;
 
+app.use(cookieParser());
 app.use("/api/auth", authenticationRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
