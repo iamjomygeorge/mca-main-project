@@ -15,6 +15,7 @@ const FileInput = ({
   helpText,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
+
   const handleDragEnter = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -36,7 +37,14 @@ const FileInput = ({
     const droppedFile = e.dataTransfer.files[0];
     if (droppedFile) setFile(droppedFile);
   };
-  const handleClick = () => inputRef.current?.click();
+
+  const handleClick = () => {
+    if (inputRef.current) {
+      inputRef.current.click();
+    }
+  };
+
+  const inputId = label.replace(/\s+/g, "-").toLowerCase() + "-input";
 
   return (
     <div>
@@ -72,6 +80,7 @@ const FileInput = ({
               onClick={(e) => {
                 e.stopPropagation();
                 setFile(null);
+                if (inputRef.current) inputRef.current.value = ""; // Clear file input value
               }}
               className="mt-2 text-xs font-semibold text-red-600 hover:text-red-500"
             >
@@ -83,16 +92,17 @@ const FileInput = ({
             <Icons.upload className="mx-auto h-12 w-12 text-zinc-400" />
             <div className="mt-4 flex text-sm leading-6 text-zinc-600 dark:text-zinc-400">
               <label
-                htmlFor={label.replace(/\s+/g, "-").toLowerCase()}
+                htmlFor={inputId}
                 className="relative cursor-pointer rounded-md font-semibold text-sky-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-sky-600 focus-within:ring-offset-2 dark:text-sky-400 hover:text-sky-500"
               >
-                <span>Upload a file</span>
+                <span className="pointer-events-auto">Upload a file</span>
                 <input
                   ref={inputRef}
-                  id={label.replace(/\s+/g, "-").toLowerCase()}
+                  id={inputId}
+                  name={inputId}
                   type="file"
                   accept={accepted}
-                  className="sr-only"
+                  className="sr-only pointer-events-auto"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
                 />
               </label>
@@ -110,6 +120,8 @@ export default function AuthorUploadForm() {
   const { token } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("0.00");
+  const [currency, setCurrency] = useState("INR");
   const [coverImageFile, setCoverImageFile] = useState(null);
   const [bookFile, setBookFile] = useState(null);
   const [error, setError] = useState(null);
@@ -129,6 +141,8 @@ export default function AuthorUploadForm() {
   const clearForm = () => {
     setTitle("");
     setDescription("");
+    setPrice("0.00");
+    setCurrency("INR");
     setCoverImageFile(null);
     setBookFile(null);
     if (coverImageInputRef.current) coverImageInputRef.current.value = "";
@@ -152,11 +166,20 @@ export default function AuthorUploadForm() {
       setError("An EPUB file is required.");
       return;
     }
+    const numericPrice = parseFloat(price);
+    if (isNaN(numericPrice) || numericPrice < 0) {
+      setError(
+        "Please enter a valid, non-negative price (e.g., 0.00, 599.00)."
+      );
+      return;
+    }
 
     setIsSubmitting(true);
     const formData = new FormData();
     formData.append("title", title);
     formData.append("description", description);
+    formData.append("price", numericPrice.toFixed(2));
+    formData.append("currency", currency);
     formData.append("bookFile", bookFile);
     formData.append("coverImageFile", coverImageFile);
 
@@ -170,12 +193,16 @@ export default function AuthorUploadForm() {
         }
       );
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to upload book");
+        const errorMsg = responseData.errors
+          ? responseData.errors.join(", ")
+          : responseData.error || "Failed to upload book";
+        throw new Error(errorMsg);
       }
-      const uploadedBook = await response.json();
-      setSuccess(`Book "${uploadedBook.title}" uploaded successfully!`);
+
+      setSuccess(`Book "${responseData.title}" uploaded successfully!`);
       clearForm();
     } catch (err) {
       setError(`Upload failed: ${err.message}`);
@@ -198,7 +225,6 @@ export default function AuthorUploadForm() {
         </p>
       </div>
 
-      {/* Error/Success Messages */}
       {error && (
         <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-500/30">
           <p className="text-sm font-medium text-red-800 dark:text-red-200">
@@ -214,26 +240,49 @@ export default function AuthorUploadForm() {
         </div>
       )}
 
-      {/* Book Details Section */}
       <div className="p-8 bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg space-y-8">
         <h2 className="text-lg font-semibold border-b pb-4 border-zinc-200 dark:border-zinc-700">
           Book Details
         </h2>
-        <div>
-          <label htmlFor="title" className={commonLabelClasses}>
-            Book Title <span className="text-red-500">*</span>
-          </label>
-          <div className="mt-2">
-            <input
-              type="text"
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className={commonInputClasses}
-            />
+        <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-6">
+          <div>
+            <label htmlFor="title" className={commonLabelClasses}>
+              Book Title <span className="text-red-500">*</span>
+            </label>
+            <div className="mt-2">
+              <input
+                type="text"
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                className={commonInputClasses}
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="price" className={commonLabelClasses}>
+              Price ({currency}) <span className="text-red-500">*</span>
+            </label>
+            <div className="mt-2">
+              <input
+                type="number"
+                id="price"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                required
+                min="0.00"
+                step="0.01"
+                className={commonInputClasses}
+                placeholder="e.g., 299.00"
+              />
+            </div>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Set to 0.00 for a free book.
+            </p>
           </div>
         </div>
+
         <div>
           <label htmlFor="description" className={commonLabelClasses}>
             Description / Synopsis
@@ -250,7 +299,6 @@ export default function AuthorUploadForm() {
         </div>
       </div>
 
-      {/* File Upload Section */}
       <div className="p-8 bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg space-y-8">
         <h2 className="text-lg font-semibold border-b pb-4 border-zinc-200 dark:border-zinc-700">
           Book Files
@@ -274,12 +322,11 @@ export default function AuthorUploadForm() {
             setFile={setBookFile}
             previewUrl={bookFilePreviewUrl}
             inputRef={bookFileInputRef}
-            helpText="EPUB files only. Max size 50MB." // Example size limit
+            helpText="EPUB files only. Max size 50MB."
           />
         </div>
       </div>
 
-      {/* Submit Button */}
       <div className="flex justify-end pt-6 border-t border-zinc-200 dark:border-zinc-800">
         <button
           type="submit"

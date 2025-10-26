@@ -66,7 +66,7 @@ router.post(
         bookFile.buffer,
         bookFile.originalname,
         bookFile.mimetype,
-        "books"
+        "books/classic"
       );
       let coverImageUrl = null;
       if (coverImageFile) {
@@ -74,7 +74,7 @@ router.post(
           coverImageFile.buffer,
           coverImageFile.originalname,
           coverImageFile.mimetype,
-          "covers"
+          "covers/classic"
         );
       }
 

@@ -6,6 +6,8 @@ const userRoutes = require("./src/api/userProfile.js");
 const bookRoutes = require("./src/api/books");
 const adminRoutes = require("./src/api/admin");
 const authorRoutes = require("./src/api/author");
+const webhookRoutes = require("./src/api/webhooks");
+const purchaseRoutes = require("./src/api/purchase");
 
 const app = express();
 
@@ -15,6 +17,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+app.use("/api/webhooks", webhookRoutes);
 app.use(express.json());
 
 const PORT = process.env.PORT || 8080;
@@ -24,6 +27,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/author", authorRoutes);
+app.use("/api/purchase", purchaseRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to the Inkling Backend API!" });
