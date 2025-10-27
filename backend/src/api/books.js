@@ -1,9 +1,30 @@
 const express = require("express");
 const pool = require("../config/database");
-const authenticateToken = require("../middleware/authenticateToken");
-const { upload, uploadFileToS3 } = require("../services/fileUpload");
+const jwt = require("jsonwebtoken");
 
 const router = express.Router();
+
+const optionalAuthenticateToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (token == null) {
+    req.user = null;
+    return next();
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      req.user = null;
+      console.warn(
+        "Optional auth: Invalid token received, proceeding anonymously."
+      );
+    } else {
+      req.user = user;
+    }
+    next();
+  });
+};
 
 router.get("/", async (req, res) => {
   try {
@@ -49,26 +70,43 @@ router.get("/featured", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", optionalAuthenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
-    const book = await pool.query(
+    const { id: bookId } = req.params;
+    const userId = req.user ? req.user.userId : null;
+
+    const bookResult = await pool.query(
       `SELECT
          b.*,
          a.name AS author_name
        FROM books b
        JOIN authors a ON b.author_id = a.id
        WHERE b.id = $1`,
-      [id]
+      [bookId]
     );
 
-    if (book.rows.length === 0) {
+    if (bookResult.rows.length === 0) {
       return res.status(404).json({ error: "Book not found." });
     }
 
-    res.json(book.rows[0]);
+    const bookData = bookResult.rows[0];
+    let isOwned = false;
+
+    if (userId) {
+      const ownershipCheck = await pool.query(
+        "SELECT 1 FROM user_library WHERE user_id = $1 AND book_id = $2",
+        [userId, bookId]
+      );
+      if (ownershipCheck.rows.length > 0) {
+        isOwned = true;
+      }
+    }
+
+    const responseData = { ...bookData, isOwned };
+
+    res.json(responseData);
   } catch (err) {
-    console.error("Get Single Book Error:", err.message);
+    console.error("Get Single Book Error:", err.message, err.stack);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
