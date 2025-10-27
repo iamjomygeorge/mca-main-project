@@ -27,12 +27,20 @@ export default function Header() {
               <div className="h-5 w-20 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700"></div>
             ) : user ? (
               <>
+                {user.role === "READER" && (
+                  <Link
+                    href="/my-library"
+                    className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  >
+                    My Library
+                  </Link>
+                )}
                 {user.role === "ADMIN" && (
                   <Link
                     href="/admin"
                     className="text-sm font-medium text-sky-600 dark:text-sky-400 hover:underline"
                   >
-                    Admin Dashboard
+                    Administrator Dashboard
                   </Link>
                 )}
                 {user.role === "AUTHOR" && (
@@ -43,7 +51,6 @@ export default function Header() {
                     Author Dashboard
                   </Link>
                 )}
-
                 <button
                   onClick={logout}
                   className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100"

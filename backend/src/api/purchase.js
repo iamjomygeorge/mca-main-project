@@ -23,6 +23,7 @@ router.post(
     const { bookId } = req.body;
     const userId = req.user.userId;
     const client = await pool.connect();
+    let purchaseId;
 
     try {
       await client.query("BEGIN");
@@ -34,17 +35,6 @@ router.post(
       if (ownershipCheck.rows.length > 0) {
         await client.query("ROLLBACK");
         return res.status(409).json({ error: "You already own this book." });
-      }
-
-      const pendingCheck = await client.query(
-        "SELECT id FROM purchases WHERE user_id = $1 AND book_id = $2 AND status = 'PENDING'",
-        [userId, bookId]
-      );
-      if (pendingCheck.rows.length > 0) {
-        await client.query("ROLLBACK");
-        return res
-          .status(400)
-          .json({ error: "A purchase for this book is already in progress." });
       }
 
       const bookResult = await client.query(
@@ -69,25 +59,37 @@ router.post(
           .json({ error: "This book is free and does not require purchase." });
       }
 
-      const platformFee = (price * PLATFORM_COMMISSION_RATE).toFixed(2);
-      const authorRevenue = (price - parseFloat(platformFee)).toFixed(2);
-
-      const purchaseResult = await client.query(
-        `INSERT INTO purchases
-           (user_id, book_id, purchase_price, purchase_currency, status, platform_fee, author_revenue)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         RETURNING id`,
-        [
-          userId,
-          bookId,
-          price.toFixed(2),
-          bookCurrency,
-          "PENDING",
-          platformFee,
-          authorRevenue,
-        ]
+      const pendingCheck = await client.query(
+        "SELECT id FROM purchases WHERE user_id = $1 AND book_id = $2 AND status = 'PENDING'",
+        [userId, bookId]
       );
-      const purchaseId = purchaseResult.rows[0].id;
+
+      if (pendingCheck.rows.length > 0) {
+        purchaseId = pendingCheck.rows[0].id;
+        console.log(`Reusing existing PENDING purchase ID: ${purchaseId}`);
+        await client.query("UPDATE purchases SET updated_at = current_timestamp WHERE id = $1", [purchaseId]);
+      } else {
+        const platformFee = (price * PLATFORM_COMMISSION_RATE).toFixed(2);
+        const authorRevenue = (price - parseFloat(platformFee)).toFixed(2);
+
+        const purchaseResult = await client.query(
+          `INSERT INTO purchases
+             (user_id, book_id, purchase_price, purchase_currency, status, platform_fee, author_revenue)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           RETURNING id`,
+          [
+            userId,
+            bookId,
+            price.toFixed(2),
+            bookCurrency,
+            "PENDING",
+            platformFee,
+            authorRevenue,
+          ]
+        );
+        purchaseId = purchaseResult.rows[0].id;
+        console.log(`Created new PENDING purchase ID: ${purchaseId}`);
+      }
 
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
@@ -115,14 +117,15 @@ router.post(
       });
 
       await client.query("COMMIT");
-
       res.json({ checkoutUrl: session.url });
     } catch (err) {
       await client.query("ROLLBACK");
       console.error("Purchase Initiation Error:", err);
-      res
-        .status(500)
-        .json({ error: "Internal Server Error creating payment session." });
+      const errorMessage =
+        err.type === "StripeCardError"
+          ? err.message
+          : "Internal Server Error creating payment session.";
+      res.status(500).json({ error: errorMessage });
     } finally {
       client.release();
     }
