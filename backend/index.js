@@ -21,11 +21,12 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use("/api/webhooks", webhookRoutes);
+
 app.use(express.json());
+app.use(cookieParser());
 
 const PORT = process.env.PORT || 8080;
 
-app.use(cookieParser());
 app.use("/api/auth", authenticationRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);

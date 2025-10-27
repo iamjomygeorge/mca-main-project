@@ -213,7 +213,7 @@ export default function BookReaderPage() {
             </button>
           ) : (
             <div className="text-right text-sm font-medium text-green-600 dark:text-green-400 p-2.5 border border-green-300 dark:border-green-700 rounded-md bg-green-50 dark:bg-green-900/20">
-              {isFree ? "Free Access" : "Owned - Read Now"}
+              {isFree ? "Free Access" : "Owned"}
             </div>
           )}
           {/* Show purchase-related errors (including 'cancelled' message) */}
