@@ -31,8 +31,8 @@ export default function Home() {
   return (
     <main>
       {/* Hero Section */}
-      <section className="relative flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-900 text-center">
-        <Container className="pb-24">
+      <section className="relative flex flex-col items-center justify-center bg-white dark:bg-zinc-900 text-center py-24 sm:py-32">
+        <Container>
           <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
             The Standard for Digital Literary Assets
           </h1>
@@ -56,36 +56,21 @@ export default function Home() {
             </Link>
           </div>
         </Container>
-        <div className="absolute bottom-20 animate-bounce">
-          <a href="#featured-books" aria-label="Scroll to featured books">
-            <svg
-              className="w-8 h-8 text-zinc-500 dark:text-zinc-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M19 9l-7 7-7-7"
-              ></path>
-            </svg>
-          </a>
-        </div>
       </section>
 
       {/* Featured Books Section */}
       {featuredBooks.length > 0 && (
-        <section id="featured-books" className="py-20 bg-white dark:bg-zinc-800">
+        <section
+          id="featured-books"
+          className="py-20 bg-zinc-100 dark:bg-zinc-800"
+        >
           <Container>
             <h2 className="text-3xl font-bold tracking-tight text-center">
               Featured Books
             </h2>
             <div className="mt-10 flex flex-wrap justify-center gap-8">
               {featuredBooks.map((book) => (
-                <div key={book.id} className="w-48 flex-shrink-0">
+                <div key={book.id} className="w-72">
                   <BookCard book={book} />
                 </div>
               ))}
@@ -95,7 +80,7 @@ export default function Home() {
       )}
 
       {/* How It Works Section */}
-      <section className="py-20 bg-zinc-50 dark:bg-zinc-900">
+      <section className="py-20 bg-white dark:bg-zinc-900">
         <Container>
           <h2 className="text-3xl font-bold tracking-tight text-center">
             How It Works
@@ -122,7 +107,7 @@ export default function Home() {
               </p>
             </div>
             <div className="text-center">
-               <div className="flex justify-center items-center mb-4">
+              <div className="flex justify-center items-center mb-4">
                 <Icons.users className="w-12 h-12 text-zinc-500 dark:text-zinc-400" />
               </div>
               <h3 className="text-xl font-semibold">For Everyone</h3>
@@ -136,20 +121,20 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 bg-white dark:bg-zinc-800">
+      <section className="py-20 bg-zinc-100 dark:bg-zinc-800">
         <Container>
           <h2 className="text-3xl font-bold tracking-tight text-center">
             What People Are Saying
           </h2>
           <div className="mt-10 grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-3">
-            <div className="text-center p-6 rounded-lg bg-zinc-100 dark:bg-zinc-700">
+            <div className="text-left p-6 rounded-lg bg-white dark:bg-zinc-700">
               <p className="text-lg italic">
                 &quot;Inkling has revolutionized the way I publish my books. I
                 finally have peace of mind knowing my work is secure.&quot;
               </p>
               <p className="mt-4 font-semibold">- Jane Doe, Author</p>
             </div>
-            <div className="text-center p-6 rounded-lg bg-zinc-100 dark:bg-zinc-700">
+            <div className="text-left p-6 rounded-lg bg-white dark:bg-zinc-700">
               <p className="text-lg italic">
                 &quot;As a reader, I love knowing that I&apos;m supporting the
                 original authors directly. The reading experience is fantastic
@@ -157,7 +142,7 @@ export default function Home() {
               </p>
               <p className="mt-4 font-semibold">- John Smith, Reader</p>
             </div>
-            <div className="text-center p-6 rounded-lg bg-zinc-100 dark:bg-zinc-700">
+            <div className="text-left p-6 rounded-lg bg-white dark:bg-zinc-700">
               <p className="text-lg italic">
                 &quot;This is the future of digital publishing. Inkling is a
                 game-changer for the literary world.&quot;
@@ -169,7 +154,7 @@ export default function Home() {
       </section>
 
       {/* Call to Action Section */}
-      <section className="py-20 text-center bg-zinc-50 dark:bg-zinc-900">
+      <section className="py-20 text-center bg-white dark:bg-zinc-900">
         <Container>
           <h2 className="text-3xl font-bold tracking-tight">
             Join Inkling Today
