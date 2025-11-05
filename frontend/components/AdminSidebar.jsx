@@ -17,6 +17,11 @@ const navLinks = [
     icon: Icons.book,
   },
   {
+    name: "Messages",
+    href: "/admin/messages",
+    icon: Icons.mail,
+  },
+  {
     name: "Account Settings",
     href: "/admin/account",
     icon: Icons.password,

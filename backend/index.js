@@ -8,6 +8,7 @@ const adminRoutes = require("./src/api/admin");
 const authorRoutes = require("./src/api/author");
 const webhookRoutes = require("./src/api/webhooks");
 const purchaseRoutes = require("./src/api/purchase");
+const contactRoutes = require("./src/api/contact");
 const cookieParser = require('cookie-parser');
 
 const app = express();
@@ -33,6 +34,7 @@ app.use("/api/books", bookRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/author", authorRoutes);
 app.use("/api/purchase", purchaseRoutes);
+app.use("/api/contact", contactRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to the Inkling Backend API!" });
