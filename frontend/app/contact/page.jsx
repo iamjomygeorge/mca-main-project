@@ -7,7 +7,7 @@ import { Icons } from "@/components/Icons";
 const InfoItem = ({ icon: Icon, title, children }) => (
   <div className="flex gap-4">
     <div className="flex-shrink-0">
-      <Icon className="h-6 w-6 text-sky-600 dark:text-sky-400" />
+      <Icon className="h-9 w-6 text-zinc-900 dark:text-zinc-100" />
     </div>
     <div>
       <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
@@ -27,7 +27,7 @@ export default function ContactPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const commonInputClasses =
-    "block w-full appearance-none rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-zinc-900 placeholder-zinc-500 focus:border-sky-500 focus:outline-none focus:ring-sky-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm";
+    "block w-full appearance-none rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-zinc-900 placeholder-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm";
   const commonLabelClasses =
     "block text-sm font-medium leading-6 text-zinc-900 dark:text-zinc-100";
 
@@ -66,12 +66,12 @@ export default function ContactPage() {
 
   return (
     <Container className="py-16 sm:py-24">
-      <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
             Contact Us
           </h1>
-          <p className="mt-6 text-lg leading-8 text-zinc-600 dark:text-zinc-400">
+          <p className="mt-2 text-lg leading-8 text-zinc-600 dark:text-zinc-400">
             Have questions? We'd love to hear from you.
           </p>
         </div>

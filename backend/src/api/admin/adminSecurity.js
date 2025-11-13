@@ -75,13 +75,13 @@ router.post(
     const { userId } = req.user;
     try {
       const userResult = await pool.query(
-        "SELECT email, two_factor_enabled FROM users WHERE id = $1",
+        "SELECT email, full_name, two_factor_enabled FROM users WHERE id = $1",
         [userId]
       );
       if (userResult.rows.length === 0) {
         return res.status(404).json({ error: "User not found." });
       }
-      const { email, two_factor_enabled } = userResult.rows[0];
+      const { email, full_name, two_factor_enabled } = userResult.rows[0];
 
       if (two_factor_enabled) {
         return res.status(400).json({ error: "2FA is already enabled." });
@@ -96,7 +96,7 @@ router.post(
         [otpHash, expiryTime, userId]
       );
 
-      await send2faEmail(email, otpCode);
+      await send2faEmail(email, full_name, otpCode);
 
       res.json({ message: `A verification code has been sent to ${email}.` });
     } catch (err) {

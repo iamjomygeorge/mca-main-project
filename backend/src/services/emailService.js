@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: process.env.EMAIL_PORT,
@@ -27,18 +28,29 @@ const sendEmail = async ({ to, subject, text, html }) => {
   }
 };
 
-const send2faEmail = async (userEmail, otpCode) => {
-  const subject = "Two-Factor Authentication";
-  const text = `Your Two-Factor Authentication code is: ${otpCode}\n\nThis code will expire in 10 minutes.`;
+const send2faEmail = async (userEmail, fullName, otpCode) => {
+  const firstName = fullName ? fullName.split(" ")[0] : "User";
+
+  const subject = `Your Code - ${otpCode}`;
+  const text = `Dear ${firstName},
+
+Your code is: ${otpCode}. Use it to access your account.
+
+If you didn't request this, simply ignore this message.
+
+Yours,
+The Inkling Team`;
   const html = `
-    <div style="font-family: sans-serif; padding: 20px; color: #333;">
-      <h2 style="color: #000;">Inkling Two-Factor Authentication</h2>
-      <p>Your Two-Factor Authentication code is:</p>
-      <p style="font-size: 24px; font-weight: bold; letter-spacing: 2px; color: #000;">
-        ${otpCode}
+    <div style="font-family: sans-serif; font-size: 15px; padding: 0 20px 20px 20px; color: #333;">
+      <p style="margin-top: 0;">Dear ${firstName},</p>
+      
+      <p>Your code is: <span style="font-size: 15px; color: #333;">${otpCode}</span>. Use it to access your account.<p>
+      
+      <p style="font-size: 15px; color: #333;">
+        If you didn't request this, simply ignore this message.
       </p>
-      <p>This code will expire in 10 minutes.</p>
-      <p style="font-size: 12px; color: #777;">If you did not request this, please change your accoun password immediately.</p>
+      
+      <p>Yours,<br>The Inkling Team</p>
     </div>
   `;
 

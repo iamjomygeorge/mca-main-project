@@ -11,7 +11,7 @@ export default function AboutPage() {
           The Standard for Digital Literary Assets.
         </p>
       </div>
-      <div className="max-w-3xl mx-auto mt-16 space-y-12 text-left">
+      <div className="max-w-3xl mx-auto mt-16 space-y-12 text-justify">
         <div className="space-y-6">
           <h2 className="text-3xl font-bold tracking-tight">Our Mission</h2>
           <p className="text-lg text-zinc-700 dark:text-zinc-300">
@@ -30,18 +30,14 @@ export default function AboutPage() {
             Inkling functions in two primary ways:
           </p>
           <ul className="list-disc list-inside space-y-4 text-lg text-zinc-700 dark:text-zinc-300">
-            <li>
-              <strong>For Authors:</strong> A platform for authors to secure
-              their work on an immutable ledger, ensuring verifiable ownership
-              and authenticity. Authors can register, upload their EPUB files,
-              and set their price.
-            </li>
-            <li>
-              <strong>For Readers:</strong> A digital library where readers can
-              purchase, own, and read verifiable literary works. Once purchased,
-              books are added to their personal "My Library" page for reading
-              anytime.
-            </li>
+            <strong>For Authors:</strong> A platform for authors to secure their
+            work on an immutable ledger, ensuring verifiable ownership and
+            authenticity. Authors can register, upload their EPUB files, and set
+            their price.<br></br>
+            <strong>For Readers:</strong> A digital library where readers can
+            purchase, own, and read verifiable literary works. Once purchased,
+            books are added to their personal "My Library" page for reading
+            anytime.
           </ul>
         </div>
       </div>

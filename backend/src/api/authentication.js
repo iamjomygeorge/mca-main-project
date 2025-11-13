@@ -57,7 +57,7 @@ router.post("/register", registrationRules(), validate, async (req, res) => {
 
     const newUserRes = await client.query(
       "INSERT INTO users (full_name, username, email, password_hash, role, auth_method) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-      [fullName, username || null, email, passwordHash, userRole, "email"] // Explicitly 'email' auth_method
+      [fullName, username || null, email, passwordHash, userRole, "email"]
     );
     const newUser = newUserRes.rows[0];
 
@@ -152,7 +152,7 @@ router.post("/login", loginRules(), validate, async (req, res) => {
       );
 
       try {
-        await send2faEmail(user.email, otpCode);
+        await send2faEmail(user.email, user.full_name, otpCode);
       } catch (emailError) {
         console.error("Failed to send 2FA email:", emailError);
       }
