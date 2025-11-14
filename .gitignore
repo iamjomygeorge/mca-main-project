@@ -48,3 +48,10 @@ pnpm-debug.log*
 /frontend/playwright-report/
 /frontend/blob-report/
 /frontend/playwright/.cache/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
