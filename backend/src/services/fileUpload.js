@@ -1,6 +1,10 @@
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
-const multer = require('multer');
-const crypto = require('crypto');
+const {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} = require("@aws-sdk/client-s3");
+const multer = require("multer");
+const crypto = require("crypto");
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
@@ -10,7 +14,9 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 async function uploadFileToS3(fileBuffer, originalname, mimetype, folderName) {
-  const uniqueFileName = `${crypto.randomBytes(16).toString('hex')}-${originalname}`;
+  const uniqueFileName = `${crypto
+    .randomBytes(16)
+    .toString("hex")}-${originalname}`;
   const bucketName = process.env.AWS_S3_BUCKET_NAME;
 
   const s3Key = `${folderName}/${uniqueFileName}`;
@@ -28,7 +34,41 @@ async function uploadFileToS3(fileBuffer, originalname, mimetype, folderName) {
   return fileUrl;
 }
 
+async function deleteFileFromS3(fileUrl) {
+  if (!fileUrl) return;
+
+  try {
+    const bucketName = process.env.AWS_S3_BUCKET_NAME;
+    const region = process.env.AWS_REGION;
+
+    const baseUrl = `https://${bucketName}.s3.${region}.amazonaws.com/`;
+
+    if (!fileUrl.startsWith(baseUrl)) {
+      console.warn(
+        `Skipping S3 delete: URL does not match expected bucket pattern. URL: ${fileUrl}`
+      );
+      return;
+    }
+
+    const key = fileUrl.replace(baseUrl, "");
+
+    const command = new DeleteObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+    });
+
+    await s3Client.send(command);
+    console.log(`Successfully rolled back (deleted) S3 file: ${key}`);
+  } catch (err) {
+    console.error(
+      `Failed to delete file from S3 during rollback: ${fileUrl}`,
+      err
+    );
+  }
+}
+
 module.exports = {
   upload,
   uploadFileToS3,
+  deleteFileFromS3,
 };

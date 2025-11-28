@@ -1,6 +1,10 @@
 const express = require("express");
 const pool = require("../../config/database");
-const { upload, uploadFileToS3 } = require("../../services/fileUpload");
+const {
+  upload,
+  uploadFileToS3,
+  deleteFileFromS3,
+} = require("../../services/fileUpload");
 
 const router = express.Router();
 
@@ -10,12 +14,13 @@ router.post(
     { name: "coverImageFile", maxCount: 1 },
     { name: "bookFile", maxCount: 1 },
   ]),
-  async (req, res) => {
+  async (req, res, next) => {
     const client = await pool.connect();
 
-    try {
-      await client.query("BEGIN");
+    let bookFileUrl = null;
+    let coverImageUrl = null;
 
+    try {
       const {
         title,
         description,
@@ -33,6 +38,8 @@ router.post(
           .json({ error: "Title, author, and a book file are required." });
       }
 
+      await client.query("BEGIN");
+
       let authorId = existingAuthorId;
 
       if (newAuthorName) {
@@ -44,18 +51,16 @@ router.post(
       }
 
       if (!authorId) {
-        return res
-          .status(400)
-          .json({ error: "Could not determine author ID." });
+        throw new Error("Could not determine author ID.");
       }
 
-      const bookFileUrl = await uploadFileToS3(
+      bookFileUrl = await uploadFileToS3(
         bookFile.buffer,
         bookFile.originalname,
         bookFile.mimetype,
         "books/classic"
       );
-      let coverImageUrl = null;
+
       if (coverImageFile) {
         coverImageUrl = await uploadFileToS3(
           coverImageFile.buffer,
@@ -76,14 +81,18 @@ router.post(
     } catch (err) {
       await client.query("ROLLBACK");
       console.error("Admin Book Upload Error:", err);
-      res.status(500).json({ error: "Internal Server Error" });
+
+      if (bookFileUrl) await deleteFileFromS3(bookFileUrl);
+      if (coverImageUrl) await deleteFileFromS3(coverImageUrl);
+
+      next(err);
     } finally {
       client.release();
     }
   }
 );
 
-router.put("/:id/feature", async (req, res) => {
+router.put("/:id/feature", async (req, res, next) => {
   const { id } = req.params;
   const { feature } = req.body;
 
@@ -100,7 +109,7 @@ router.put("/:id/feature", async (req, res) => {
     res.json(updatedBook.rows[0]);
   } catch (err) {
     console.error("Feature Book Error:", err.message);
-    res.status(500).json({ error: "Internal Server Error" });
+    next(err);
   }
 });
 

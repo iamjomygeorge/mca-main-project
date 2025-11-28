@@ -2,19 +2,28 @@ const express = require("express");
 const pool = require("../config/database");
 const authenticateToken = require("../middleware/authenticateToken");
 const isAuthor = require("../middleware/isAuthor");
-const { upload, uploadFileToS3 } = require("../services/fileUpload");
+const {
+  upload,
+  uploadFileToS3,
+  deleteFileFromS3,
+} = require("../services/fileUpload");
 const { body, validationResult } = require("express-validator");
 
 const router = express.Router();
 
 router.use(authenticateToken, isAuthor);
 
-router.get("/overview", async (req, res) => {
+router.get("/overview", async (req, res, next) => {
   try {
     const authorResult = await pool.query(
       "SELECT id FROM authors WHERE user_id = $1",
       [req.user.userId]
     );
+
+    if (authorResult.rows.length === 0) {
+      return res.status(404).json({ error: "Author profile not found." });
+    }
+
     const authorId = authorResult.rows[0].id;
 
     const statsResult = await pool.query(
@@ -29,16 +38,21 @@ router.get("/overview", async (req, res) => {
     res.json(stats);
   } catch (error) {
     console.error("Error fetching author overview stats:", error);
-    res.status(500).json({ error: "Failed to retrieve author statistics." });
+    next(error);
   }
 });
 
-router.get("/my-books", async (req, res) => {
+router.get("/my-books", async (req, res, next) => {
   try {
     const authorResult = await pool.query(
       "SELECT id FROM authors WHERE user_id = $1",
       [req.user.userId]
     );
+
+    if (authorResult.rows.length === 0) {
+      return res.status(404).json({ error: "Author profile not found." });
+    }
+
     const authorId = authorResult.rows[0].id;
 
     const booksResult = await pool.query(
@@ -54,7 +68,7 @@ router.get("/my-books", async (req, res) => {
     res.json(booksResult.rows);
   } catch (err) {
     console.error("Get Author's Books Error:", err.message);
-    res.status(500).json({ error: "Internal Server Error" });
+    next(err);
   }
 });
 
@@ -84,7 +98,7 @@ router.post(
     { name: "coverImageFile", maxCount: 1 },
   ]),
   bookUploadValidationRules(),
-  async (req, res) => {
+  async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       const errorMessages = errors.array().map((err) => err.msg);
@@ -93,14 +107,21 @@ router.post(
 
     const client = await pool.connect();
 
+    let bookFileUrl = null;
+    let coverImageUrl = null;
+
     try {
-      await client.query("BEGIN");
       const userId = req.user.userId;
 
       const authorResult = await client.query(
         "SELECT id FROM authors WHERE user_id = $1",
         [userId]
       );
+
+      if (authorResult.rows.length === 0) {
+        return res.status(404).json({ error: "Author profile not found." });
+      }
+
       const authorId = authorResult.rows[0].id;
 
       const { title, description, price, currency } = req.body;
@@ -108,25 +129,25 @@ router.post(
       const coverImageFile = req.files?.["coverImageFile"]?.[0];
 
       if (!bookFile) {
-        await client.query("ROLLBACK");
         return res
           .status(400)
           .json({ errors: ["Book file (EPUB) is required."] });
       }
       if (!coverImageFile) {
-        await client.query("ROLLBACK");
         return res.status(400).json({ errors: ["Cover image is required."] });
       }
 
+      await client.query("BEGIN");
+
       const finalCurrency = currency || "INR";
 
-      const bookFileUrl = await uploadFileToS3(
+      bookFileUrl = await uploadFileToS3(
         bookFile.buffer,
         bookFile.originalname,
         bookFile.mimetype,
         "books/author"
       );
-      const coverImageUrl = await uploadFileToS3(
+      coverImageUrl = await uploadFileToS3(
         coverImageFile.buffer,
         coverImageFile.originalname,
         coverImageFile.mimetype,
@@ -161,9 +182,11 @@ router.post(
     } catch (err) {
       await client.query("ROLLBACK");
       console.error("Author Book Upload Error:", err.message, err.stack);
-      res
-        .status(500)
-        .json({ errors: ["Internal Server Error during book upload."] });
+
+      if (bookFileUrl) await deleteFileFromS3(bookFileUrl);
+      if (coverImageUrl) await deleteFileFromS3(coverImageUrl);
+
+      next(err);
     } finally {
       client.release();
     }
