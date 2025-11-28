@@ -1,24 +1,11 @@
 const express = require("express");
 const pool = require("../../config/database");
-const authenticateToken = require("../../middleware/authenticateToken");
 const { upload, uploadFileToS3 } = require("../../services/fileUpload");
 
 const router = express.Router();
 
-const isAdmin = (req, res, next) => {
-  if (req.user && req.user.role === "ADMIN") {
-    next();
-  } else {
-    return res
-      .status(403)
-      .json({ error: "Forbidden: Access is restricted to administrators." });
-  }
-};
-
 router.post(
   "/",
-  authenticateToken,
-  isAdmin,
   upload.fields([
     { name: "coverImageFile", maxCount: 1 },
     { name: "bookFile", maxCount: 1 },
@@ -91,13 +78,12 @@ router.post(
       console.error("Admin Book Upload Error:", err);
       res.status(500).json({ error: "Internal Server Error" });
     } finally {
-      // Release the client back to the pool
       client.release();
     }
   }
 );
 
-router.put("/:id/feature", authenticateToken, isAdmin, async (req, res) => {
+router.put("/:id/feature", async (req, res) => {
   const { id } = req.params;
   const { feature } = req.body;
 

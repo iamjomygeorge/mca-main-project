@@ -1,30 +1,8 @@
 const express = require("express");
 const pool = require("../config/database");
-const jwt = require("jsonwebtoken");
+const optionalAuthenticateToken = require("../middleware/optionalAuthenticateToken");
 
 const router = express.Router();
-
-const optionalAuthenticateToken = (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
-
-  if (token == null) {
-    req.user = null;
-    return next();
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      req.user = null;
-      console.warn(
-        "Optional auth: Invalid token received, proceeding anonymously."
-      );
-    } else {
-      req.user = user;
-    }
-    next();
-  });
-};
 
 router.get("/", async (req, res) => {
   try {

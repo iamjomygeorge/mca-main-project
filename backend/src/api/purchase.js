@@ -6,13 +6,14 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const router = express.Router();
 
+router.use(authenticateToken);
+
 const PLATFORM_COMMISSION_RATE = parseFloat(
   process.env.PLATFORM_COMMISSION_RATE || "0.15"
 );
 
 router.post(
   "/initiate",
-  authenticateToken,
   [body("bookId").isUUID().withMessage("Valid Book ID is required.")],
   async (req, res) => {
     const errors = validationResult(req);
@@ -67,7 +68,10 @@ router.post(
       if (pendingCheck.rows.length > 0) {
         purchaseId = pendingCheck.rows[0].id;
         console.log(`Reusing existing PENDING purchase ID: ${purchaseId}`);
-        await client.query("UPDATE purchases SET updated_at = current_timestamp WHERE id = $1", [purchaseId]);
+        await client.query(
+          "UPDATE purchases SET updated_at = current_timestamp WHERE id = $1",
+          [purchaseId]
+        );
       } else {
         const platformFee = (price * PLATFORM_COMMISSION_RATE).toFixed(2);
         const authorRevenue = (price - parseFloat(platformFee)).toFixed(2);
@@ -132,7 +136,7 @@ router.post(
   }
 );
 
-router.get("/my-library", authenticateToken, async (req, res) => {
+router.get("/my-library", async (req, res) => {
   const userId = req.user.userId;
   try {
     const libraryResult = await pool.query(

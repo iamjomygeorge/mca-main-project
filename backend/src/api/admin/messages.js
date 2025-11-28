@@ -1,20 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../../config/database");
-const authenticateToken = require("../../middleware/authenticateToken");
 const { body, validationResult } = require("express-validator");
-
-const isAdmin = (req, res, next) => {
-  if (req.user && req.user.role === "ADMIN") {
-    next();
-  } else {
-    return res
-      .status(403)
-      .json({ error: "Forbidden: Access is restricted to administrators." });
-  }
-};
-
-router.use(authenticateToken, isAdmin);
 
 router.get("/", async (req, res) => {
   try {
