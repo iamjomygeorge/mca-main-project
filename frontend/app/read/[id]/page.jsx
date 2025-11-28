@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Container from "@/components/Container";
 import EpubReader from "@/components/EpubReader";
@@ -37,6 +37,11 @@ export default function BookReaderPage() {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           }
         );
+
+        if (response.status === 401 || response.status === 403) {
+          router.push("/login?redirect=/read/" + id);
+          return;
+        }
 
         if (!response.ok) {
           throw new Error("Book not found or could not be loaded.");

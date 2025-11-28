@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 import Skeleton from "@/components/Skeleton";
@@ -16,7 +17,7 @@ const formatTimestamp = (isoDate) => {
   }
 };
 
-function MessageItem({ message, token, onUpdate, onDelete }) {
+function MessageItem({ message, token, onUpdate, onDelete, router }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -62,6 +63,12 @@ function MessageItem({ message, token, onUpdate, onDelete }) {
           body: JSON.stringify({ status: status }),
         }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        router.push("/login?redirect=/admin/messages");
+        return;
+      }
+
       if (!response.ok) throw new Error("Failed to update status");
       const updatedMessage = await response.json();
       onUpdate(updatedMessage);
@@ -90,6 +97,12 @@ function MessageItem({ message, token, onUpdate, onDelete }) {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        router.push("/login?redirect=/admin/messages");
+        return;
+      }
+
       if (!response.ok) throw new Error("Failed to delete message");
       onDelete(message.id);
     } catch (err) {
@@ -186,14 +199,14 @@ function MessageItem({ message, token, onUpdate, onDelete }) {
 
 export default function AdminMessagesPage() {
   const { token, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchMessages = useCallback(async () => {
     if (!token) {
-      if (!authLoading) setError("You must be logged in to view this page.");
-      setLoading(false);
+      // Layout handles redirect, but safe fallback
       return;
     }
     setLoading(true);
@@ -205,6 +218,12 @@ export default function AdminMessagesPage() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        router.push("/login?redirect=/admin/messages");
+        return;
+      }
+
       if (!response.ok) {
         const errData = await response
           .json()
@@ -219,11 +238,13 @@ export default function AdminMessagesPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, authLoading]);
+  }, [token, router]);
 
   useEffect(() => {
-    fetchMessages();
-  }, [fetchMessages]);
+    if (token) {
+      fetchMessages();
+    }
+  }, [token, fetchMessages]);
 
   const handleUpdateMessage = (updatedMessage) => {
     setMessages((prev) =>
@@ -279,6 +300,7 @@ export default function AdminMessagesPage() {
                 token={token}
                 onUpdate={handleUpdateMessage}
                 onDelete={handleDeleteMessage}
+                router={router}
               />
             ))
           ) : (

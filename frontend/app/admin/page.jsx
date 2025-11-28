@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 import Skeleton from "@/components/Skeleton";
@@ -25,6 +26,7 @@ const StatCard = ({ title, value, icon: Icon, loading }) => (
 
 export default function AdminDashboardPage() {
   const { token, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [stats, setStats] = useState(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -32,9 +34,6 @@ export default function AdminDashboardPage() {
 
   const fetchStats = useCallback(async () => {
     if (!token) {
-      if (!authLoading) {
-        setError("You must be logged in to view this page.");
-      }
       return;
     }
 
@@ -51,6 +50,11 @@ export default function AdminDashboardPage() {
           },
         }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        router.push("/login?redirect=/admin");
+        return;
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -70,7 +74,7 @@ export default function AdminDashboardPage() {
       }
       setIsRefreshing(false);
     }
-  }, [token, authLoading, isInitialLoading]);
+  }, [token, isInitialLoading, router]);
 
   useEffect(() => {
     if (token) {

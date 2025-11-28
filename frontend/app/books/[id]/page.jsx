@@ -58,6 +58,10 @@ export default function BookReaderPage() {
         { headers }
       );
 
+      // Note: optional auth check (fetchBookData) usually doesn't 401
+      // because the backend endpoint allows anonymous access.
+      // But if it does, we handle it silently or let it fail gracefully.
+
       if (!response.ok) {
         const errData = await response
           .json()
@@ -106,6 +110,12 @@ export default function BookReaderPage() {
           body: JSON.stringify({ bookId: id }),
         }
       );
+
+      if (initiateResponse.status === 401 || initiateResponse.status === 403) {
+        router.push(`/login?redirect=/books/${id}`);
+        return;
+      }
+
       const initiateData = await initiateResponse.json();
       if (!initiateResponse.ok) {
         throw new Error(initiateData.error || "Failed to start purchase.");
@@ -263,7 +273,7 @@ export default function BookReaderPage() {
           <div className="flex-shrink-0 w-40 aspect-[2/3] relative">
             <Image
               src={bookData.cover_image_url || "/placeholder-cover.png"}
-              alt={`Cover of ${bookData.title}`}
+              alt={`Cover of ${book.title}`}
               fill
               sizes="160px"
               className="object-contain rounded shadow-lg"

@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 
 export default function ChangePasswordForm() {
   const { token } = useAuth();
+  const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -51,6 +53,11 @@ export default function ChangePasswordForm() {
           }),
         }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        router.push("/login?redirect=/admin/account");
+        return;
+      }
 
       if (!response.ok) {
         let errorMsg = "Failed to update password. Please try again.";

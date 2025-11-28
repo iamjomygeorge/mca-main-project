@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import BookCard from "@/components/BookCard";
 import { Icons } from "@/components/Icons";
@@ -9,6 +10,7 @@ import Skeleton from "@/components/Skeleton";
 
 export default function MyBooksPage() {
   const { token, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -26,6 +28,12 @@ export default function MyBooksPage() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        router.push("/login?redirect=/author/my-books");
+        return;
+      }
+
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.error || "Failed to fetch your books");
@@ -37,14 +45,11 @@ export default function MyBooksPage() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, router]);
 
   useEffect(() => {
     if (token) {
       fetchBooks();
-    } else if (!authLoading) {
-      setError("Please log in as an author to view your books.");
-      setLoading(false);
     }
   }, [token, authLoading, fetchBooks]);
 
@@ -64,6 +69,11 @@ export default function MyBooksPage() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        router.push("/login?redirect=/author/my-books");
+        return;
+      }
 
       if (!response.ok) {
         let errorMsg = "Failed to delete book.";
@@ -178,7 +188,6 @@ export default function MyBooksPage() {
         </>
       )}
 
-      {/* Delete Confirmation Modal/Dialog */}
       {deleteConfirmation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white dark:bg-zinc-800 p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 
@@ -110,6 +111,7 @@ const FileInput = ({
 
 export default function AdminUploadForm() {
   const { token } = useAuth();
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [authors, setAuthors] = useState([]);
   const [selectedAuthorId, setSelectedAuthorId] = useState("");
@@ -128,9 +130,18 @@ export default function AdminUploadForm() {
     if (!token) return;
     const fetchAuthors = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/authors`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/admin/authors`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (response.status === 401 || response.status === 403) {
+          router.push("/login?redirect=/admin/books/upload");
+          return;
+        }
+
         if (!response.ok) throw new Error("Failed to fetch authors");
         const data = await response.json();
         setAuthors(data);
@@ -139,7 +150,7 @@ export default function AdminUploadForm() {
       }
     };
     fetchAuthors();
-  }, [token, success]); // Refetch authors after a successful upload
+  }, [token, success, router]);
 
   const coverImagePreviewUrl = coverImageFile
     ? URL.createObjectURL(coverImageFile)
@@ -164,24 +175,25 @@ export default function AdminUploadForm() {
     setSuccess("");
     setError(null);
 
-    const authorIsSelected = selectedAuthorId && selectedAuthorId !== 'new';
-    const newAuthorIsEntered = selectedAuthorId === 'new' && newAuthorName.trim() !== '';
+    const authorIsSelected = selectedAuthorId && selectedAuthorId !== "new";
+    const newAuthorIsEntered =
+      selectedAuthorId === "new" && newAuthorName.trim() !== "";
 
     if (!title.trim()) {
-        setError("Book Title is required.");
-        return;
+      setError("Book Title is required.");
+      return;
     }
     if (!authorIsSelected && !newAuthorIsEntered) {
-        setError("Please select an author or add a new one.");
-        return;
+      setError("Please select an author or add a new one.");
+      return;
     }
     if (!coverImageFile) {
-        setError("A Cover Image is required.");
-        return;
+      setError("A Cover Image is required.");
+      return;
     }
     if (!bookFile) {
-        setError("An EPUB file is required.");
-        return;
+      setError("An EPUB file is required.");
+      return;
     }
 
     setIsSubmitting(true);
@@ -191,8 +203,6 @@ export default function AdminUploadForm() {
     formData.append("bookFile", bookFile);
     formData.append("coverImageFile", coverImageFile);
 
-    // ## FINAL CORRECTED LOGIC ##
-    // This sends the data in the format the backend logic expects.
     if (authorIsSelected) {
       formData.append("authorId", selectedAuthorId);
     } else if (newAuthorIsEntered) {
@@ -208,6 +218,11 @@ export default function AdminUploadForm() {
           body: formData,
         }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        router.push("/login?redirect=/admin/books/upload");
+        return;
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -283,9 +298,13 @@ export default function AdminUploadForm() {
                 onChange={(e) => setSelectedAuthorId(e.target.value)}
                 className={commonInputClasses}
               >
-                <option value="" disabled>Select an Author</option>
+                <option value="" disabled>
+                  Select an Author
+                </option>
                 {authors.map((author) => (
-                  <option key={author.id} value={author.id}>{author.name}</option>
+                  <option key={author.id} value={author.id}>
+                    {author.name}
+                  </option>
                 ))}
                 <option value="new">Add New Author</option>
               </select>
@@ -293,7 +312,7 @@ export default function AdminUploadForm() {
           </div>
         </div>
 
-        {selectedAuthorId === 'new' && (
+        {selectedAuthorId === "new" && (
           <div>
             <label htmlFor="newAuthorName" className={commonLabelClasses}>
               New Author's Name <span className="text-red-500">*</span>

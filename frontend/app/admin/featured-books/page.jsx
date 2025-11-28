@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 import Container from "@/components/Container";
@@ -9,17 +10,13 @@ import Skeleton from "@/components/Skeleton";
 
 export default function FeaturedBooksPage() {
   const { token, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchBooks = useCallback(async () => {
-    if (!token) {
-      if (!authLoading) {
-        setError("You must be logged in to view this page.");
-      }
-      return;
-    }
+    if (!token) return;
 
     try {
       const response = await fetch(
@@ -30,6 +27,11 @@ export default function FeaturedBooksPage() {
           },
         }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        router.push("/login?redirect=/admin/featured-books");
+        return;
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -44,11 +46,13 @@ export default function FeaturedBooksPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, authLoading]);
+  }, [token, router]);
 
   useEffect(() => {
-    fetchBooks();
-  }, [fetchBooks]);
+    if (token) {
+      fetchBooks();
+    }
+  }, [token, fetchBooks]);
 
   const toggleFeatured = async (book) => {
     try {
@@ -63,6 +67,11 @@ export default function FeaturedBooksPage() {
           body: JSON.stringify({ feature: !book.featured }),
         }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        router.push("/login?redirect=/admin/featured-books");
+        return;
+      }
 
       if (!response.ok) {
         const errorData = await response.json();

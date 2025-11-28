@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 
@@ -118,6 +119,7 @@ const FileInput = ({
 
 export default function AuthorUploadForm() {
   const { token } = useAuth();
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("0.00");
@@ -192,6 +194,11 @@ export default function AuthorUploadForm() {
           body: formData,
         }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        router.push("/login?redirect=/author/upload");
+        return;
+      }
 
       const responseData = await response.json();
 

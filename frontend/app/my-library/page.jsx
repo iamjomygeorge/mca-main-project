@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Container from "@/components/Container";
 import BookCard from "@/components/BookCard";
@@ -10,15 +11,16 @@ import Skeleton from "@/components/Skeleton";
 
 export default function MyLibraryPage() {
   const { token, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [libraryBooks, setLibraryBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchLibrary = useCallback(async () => {
     if (!token) {
-      if (!authLoading) setError("Please log in to view your library.");
-      setLoading(false);
-      setLibraryBooks([]);
+      if (!authLoading) {
+        router.push("/login?redirect=/my-library");
+      }
       return;
     }
     setLoading(true);
@@ -30,6 +32,12 @@ export default function MyLibraryPage() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        router.push("/login?redirect=/my-library");
+        return;
+      }
+
       if (!response.ok) {
         const errData = await response
           .json()
@@ -44,7 +52,7 @@ export default function MyLibraryPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, authLoading]);
+  }, [token, authLoading, router]);
 
   useEffect(() => {
     if (!authLoading) {

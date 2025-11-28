@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
 
-const Enable2FA = ({ token, onStatusChange }) => {
+const Enable2FA = ({ token, onStatusChange, router }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -27,6 +28,12 @@ const Enable2FA = ({ token, onStatusChange }) => {
           },
         }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        router.push("/login?redirect=/admin/account");
+        return;
+      }
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to send code.");
 
@@ -56,6 +63,12 @@ const Enable2FA = ({ token, onStatusChange }) => {
           body: JSON.stringify({ token: otpCode }),
         }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        router.push("/login?redirect=/admin/account");
+        return;
+      }
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to verify code.");
 
@@ -164,7 +177,7 @@ const Enable2FA = ({ token, onStatusChange }) => {
   );
 };
 
-const Disable2FA = ({ token, onStatusChange }) => {
+const Disable2FA = ({ token, onStatusChange, router }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -198,6 +211,12 @@ const Disable2FA = ({ token, onStatusChange }) => {
           body: JSON.stringify({ currentPassword }),
         }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        router.push("/login?redirect=/admin/account");
+        return;
+      }
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to disable 2FA.");
 
@@ -308,6 +327,7 @@ const Disable2FA = ({ token, onStatusChange }) => {
 
 const TwoFactorAuthSection = () => {
   const { user, token, loading: authLoading, refreshUser } = useAuth();
+  const router = useRouter();
   const [is2faCurrentlyEnabled, setIs2faCurrentlyEnabled] = useState(null);
 
   useEffect(() => {
@@ -341,9 +361,17 @@ const TwoFactorAuthSection = () => {
         Two-Factor Authentication
       </h2>
       {is2faCurrentlyEnabled ? (
-        <Disable2FA token={token} onStatusChange={handleStatusChange} />
+        <Disable2FA
+          token={token}
+          onStatusChange={handleStatusChange}
+          router={router}
+        />
       ) : (
-        <Enable2FA token={token} onStatusChange={handleStatusChange} />
+        <Enable2FA
+          token={token}
+          onStatusChange={handleStatusChange}
+          router={router}
+        />
       )}
     </div>
   );

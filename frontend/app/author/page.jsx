@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 import Skeleton from "@/components/Skeleton";
@@ -25,6 +26,7 @@ const StatCard = ({ title, value, icon: Icon, loading }) => (
 
 export default function AuthorDashboardPage() {
   const { token, user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -39,6 +41,12 @@ export default function AuthorDashboardPage() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        router.push("/login?redirect=/author");
+        return;
+      }
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to fetch stats.");
@@ -52,14 +60,12 @@ export default function AuthorDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, router]);
 
   useEffect(() => {
     if (token) {
       fetchStats();
     } else if (!authLoading) {
-      setError("You must be logged in as an author to view this page.");
-      setLoading(false);
     }
   }, [token, authLoading, fetchStats]);
 
