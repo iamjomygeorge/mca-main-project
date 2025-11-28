@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 import Image from "next/image";
 import { loadStripe } from "@stripe/stripe-js";
+import Skeleton from "@/components/Skeleton";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
@@ -147,8 +148,23 @@ export default function BookReaderPage() {
 
   if (loading || authLoading) {
     return (
-      <Container className="py-12 flex justify-center items-center min-h-[60vh]">
-        <p>Loading...</p>
+      <Container className="py-12">
+        <div className="flex flex-col sm:flex-row justify-between items-start mb-8 gap-4">
+          <div className="w-full">
+            <Skeleton className="h-10 w-2/3 mb-2" />
+            <Skeleton className="h-6 w-1/3" />
+          </div>
+          <Skeleton className="h-12 w-32 rounded-md" />
+        </div>
+        <div className="p-8 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700 min-h-[40vh] flex flex-col md:flex-row items-center gap-8">
+          <Skeleton className="w-40 aspect-[2/3] rounded" />
+          <div className="flex-1 w-full space-y-3">
+            <Skeleton className="h-6 w-1/2 mb-4" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+        </div>
       </Container>
     );
   }
@@ -202,7 +218,7 @@ export default function BookReaderPage() {
               {isPurchasing ? (
                 <Icons.spinner className="h-5 w-5" />
               ) : (
-                <Icons.book className="h-5 w-5" /> // TODO: Find a 'cart' or 'buy' icon
+                <Icons.book className="h-5 w-5" />
               )}{" "}
               {isPurchasing
                 ? "Redirecting..."
@@ -216,7 +232,6 @@ export default function BookReaderPage() {
               {isFree ? "Free Access" : "Owned"}
             </div>
           )}
-          {/* Show purchase-related errors (including 'cancelled' message) */}
           {error && !showReader && (
             <p
               className={`text-xs mt-1 text-right ${

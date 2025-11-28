@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
+import Skeleton from "@/components/Skeleton";
 
 const formatTimestamp = (isoDate) => {
   try {
@@ -224,14 +225,12 @@ export default function AdminMessagesPage() {
     fetchMessages();
   }, [fetchMessages]);
 
-  // Callback for a MessageItem to update its state in our list
   const handleUpdateMessage = (updatedMessage) => {
     setMessages((prev) =>
       prev.map((m) => (m.id === updatedMessage.id ? updatedMessage : m))
     );
   };
 
-  // Callback for a MessageItem to delete it from our list
   const handleDeleteMessage = (deletedId) => {
     setMessages((prev) => prev.filter((m) => m.id !== deletedId));
   };
@@ -245,10 +244,6 @@ export default function AdminMessagesPage() {
         </p>
       </div>
 
-      {loading && (
-        <p className="text-center text-zinc-500">Loading messages...</p>
-      )}
-
       {error && (
         <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-500/30">
           <p className="text-sm font-medium text-red-800 dark:text-red-200">
@@ -257,7 +252,24 @@ export default function AdminMessagesPage() {
         </div>
       )}
 
-      {!loading && !error && (
+      {loading ? (
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div
+              key={i}
+              className="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/50 p-4"
+            >
+              <div className="flex justify-between items-center">
+                <div className="w-2/3 space-y-2">
+                  <Skeleton className="h-4 w-1/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+                <Skeleton className="h-4 w-20" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
         <div className="space-y-4">
           {messages.length > 0 ? (
             messages.map((msg) => (

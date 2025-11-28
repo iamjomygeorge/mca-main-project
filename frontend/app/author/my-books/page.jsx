@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import BookCard from "@/components/BookCard";
 import { Icons } from "@/components/Icons";
 import Link from "next/link";
+import Skeleton from "@/components/Skeleton";
 
 export default function MyBooksPage() {
   const { token, loading: authLoading } = useAuth();
@@ -69,8 +70,7 @@ export default function MyBooksPage() {
         try {
           const errData = await response.json();
           errorMsg = errData.error || errorMsg;
-        } catch (e) {
-        }
+        } catch (e) {}
         throw new Error(errorMsg);
       }
 
@@ -104,10 +104,21 @@ export default function MyBooksPage() {
         </Link>
       </div>
 
-      {loading && <p>Loading your books...</p>}
       {error && <p className="text-red-500 mb-4">Error: {error}</p>}
 
-      {!loading && !error && (
+      {loading ? (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex flex-col h-full">
+              <Skeleton className="aspect-[2/3] w-full rounded-lg" />
+              <div className="mt-4 space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
         <>
           {books.length > 0 ? (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-8">
@@ -115,10 +126,6 @@ export default function MyBooksPage() {
                 <div key={book.id} className="relative group">
                   <BookCard book={book} />
                   <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    {/* Add Edit Button Later */}
-                    {/* <button className="p-1.5 bg-white dark:bg-zinc-700 rounded-full shadow text-blue-600 hover:text-blue-800">
-                         <Icons.author className="h-4 w-4" /> {/* Placeholder for Edit Icon */}
-                    {/* </button> */}
                     <button
                       onClick={() => handleDeleteRequest(book.id, book.title)}
                       disabled={

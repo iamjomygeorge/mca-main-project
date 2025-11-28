@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
+import Skeleton from "@/components/Skeleton";
 
 const StatCard = ({ title, value, icon: Icon, loading }) => (
   <div className="flex flex-col bg-white dark:bg-zinc-900/50 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800">
@@ -12,15 +13,13 @@ const StatCard = ({ title, value, icon: Icon, loading }) => (
       </h3>
       <Icon className="h-5 w-5 text-zinc-400 dark:text-zinc-500" />
     </div>
-    <p className="mt-4 text-3xl font-semibold">
-      {loading && value === null ? (
-        <span className="text-zinc-300 dark:text-zinc-600 animate-pulse">
-          ...
-        </span>
+    <div className="mt-4">
+      {loading ? (
+        <Skeleton className="h-9 w-16" />
       ) : (
-        value
+        <p className="text-3xl font-semibold">{value}</p>
       )}
-    </p>
+    </div>
   </div>
 );
 

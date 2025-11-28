@@ -5,9 +5,11 @@ import Container from "@/components/Container";
 import BookCard from "@/components/BookCard";
 import { useEffect, useState } from "react";
 import { Icons } from "@/components/Icons";
+import Skeleton from "@/components/Skeleton";
 
 export default function Home() {
   const [featuredBooks, setFeaturedBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchBooks = async () => {
@@ -22,6 +24,8 @@ export default function Home() {
         setFeaturedBooks(data.slice(0, 4));
       } catch (err) {
         console.error(err);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -58,8 +62,7 @@ export default function Home() {
         </Container>
       </section>
 
-      {/* Featured Books Section */}
-      {featuredBooks.length > 0 && (
+      {(loading || featuredBooks.length > 0) && (
         <section
           id="featured-books"
           className="py-20 bg-zinc-100 dark:bg-zinc-800"
@@ -69,11 +72,21 @@ export default function Home() {
               Featured Books
             </h2>
             <div className="mt-10 flex flex-wrap justify-center gap-8">
-              {featuredBooks.map((book) => (
-                <div key={book.id} className="w-72">
-                  <BookCard book={book} />
-                </div>
-              ))}
+              {loading ?
+                  [...Array(4)].map((_, i) => (
+                    <div key={i} className="w-72 flex flex-col h-full">
+                      <Skeleton className="aspect-[2/3] w-full rounded-lg" />
+                      <div className="mt-4 space-y-2">
+                        <Skeleton className="h-5 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                      </div>
+                    </div>
+                  )):
+                  featuredBooks.map((book) => (
+                    <div key={book.id} className="w-72">
+                      <BookCard book={book} />
+                    </div>
+                  ))}
             </div>
           </Container>
         </section>

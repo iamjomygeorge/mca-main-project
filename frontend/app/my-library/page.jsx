@@ -6,9 +6,10 @@ import Container from "@/components/Container";
 import BookCard from "@/components/BookCard";
 import { Icons } from "@/components/Icons";
 import Link from "next/link";
+import Skeleton from "@/components/Skeleton";
 
 export default function MyLibraryPage() {
-  const { token, user, loading: authLoading } = useAuth();
+  const { token, loading: authLoading } = useAuth();
   const [libraryBooks, setLibraryBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -55,13 +56,22 @@ export default function MyLibraryPage() {
     <Container className="py-12">
       <h1 className="text-4xl font-bold tracking-tight mb-8">My Library</h1>
 
-      {loading && (
-        <p className="text-center text-zinc-500">Loading your library...</p>
-      )}
-
       {error && <p className="text-center text-red-500 mb-4">Error: {error}</p>}
 
-      {!loading && !error && (
+      {loading ? (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex flex-col h-full">
+              <Skeleton className="aspect-[2/3] w-full rounded-lg" />
+              <div className="mt-4 space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+                <Skeleton className="h-8 w-full mt-2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
         <>
           {libraryBooks.length > 0 ? (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-8">
