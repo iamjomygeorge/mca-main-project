@@ -5,8 +5,36 @@ const {
   uploadFileToS3,
   deleteFileFromS3,
 } = require("../../services/fileUpload");
+const { body, validationResult } = require("express-validator");
 
 const router = express.Router();
+
+const bookUploadValidationRules = () => [
+  body("title")
+    .trim()
+    .notEmpty()
+    .withMessage("Book Title is required.")
+    .escape(),
+  body("description").optional({ checkFalsy: true }).trim(),
+  body("authorId")
+    .optional({ checkFalsy: true })
+    .isUUID()
+    .withMessage("Invalid Author ID."),
+  body("newAuthorName")
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ min: 2 })
+    .withMessage("New Author Name must be at least 2 characters.")
+    .escape(),
+  body().custom((value, { req }) => {
+    if (!req.body.authorId && !req.body.newAuthorName) {
+      throw new Error(
+        "Please select an existing author or provide a new author name."
+      );
+    }
+    return true;
+  }),
+];
 
 router.post(
   "/",
@@ -14,7 +42,14 @@ router.post(
     { name: "coverImageFile", maxCount: 1 },
     { name: "bookFile", maxCount: 1 },
   ]),
+  bookUploadValidationRules(),
   async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const errorMessages = errors.array().map((err) => err.msg);
+      return res.status(400).json({ errors: errorMessages });
+    }
+
     const client = await pool.connect();
 
     let bookFileUrl = null;
@@ -27,15 +62,14 @@ router.post(
         authorId: existingAuthorId,
         newAuthorName,
       } = req.body;
+
       const bookFile = req.files["bookFile"] ? req.files["bookFile"][0] : null;
       const coverImageFile = req.files["coverImageFile"]
         ? req.files["coverImageFile"][0]
         : null;
 
-      if (!title || !bookFile || (!existingAuthorId && !newAuthorName)) {
-        return res
-          .status(400)
-          .json({ error: "Title, author, and a book file are required." });
+      if (!bookFile) {
+        return res.status(400).json({ error: "Book file (EPUB) is required." });
       }
 
       await client.query("BEGIN");
@@ -45,7 +79,7 @@ router.post(
       if (newAuthorName) {
         const newAuthorResult = await client.query(
           "INSERT INTO authors (name) VALUES ($1) RETURNING id",
-          [newAuthorName.trim()]
+          [newAuthorName]
         );
         authorId = newAuthorResult.rows[0].id;
       }
