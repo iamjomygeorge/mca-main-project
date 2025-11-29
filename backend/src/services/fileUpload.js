@@ -12,7 +12,31 @@ const s3Client = new S3Client({
 });
 
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 80 * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimeTypes = [
+      "application/epub+zip",
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error(
+          "Invalid file type. Only EPUB and images (JPEG, PNG, WEBP) are allowed."
+        )
+      );
+    }
+  },
+});
 
 async function uploadFileToS3(fileBuffer, originalname, mimetype, folderName) {
   const uniqueFileName = `${crypto
