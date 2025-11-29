@@ -6,14 +6,8 @@ const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
 const pool = require("./src/config/database");
 
-const authenticationRoutes = require("./src/api/auth");
-const userRoutes = require("./src/api/users");
-const bookRoutes = require("./src/api/books");
-const adminRoutes = require("./src/api/admin");
-const authorRoutes = require("./src/api/author");
 const webhookRoutes = require("./src/api/webhooks");
-const purchaseRoutes = require("./src/api/purchases");
-const contactRoutes = require("./src/api/contact");
+const apiRoutes = require("./src/api");
 
 const app = express();
 
@@ -43,13 +37,7 @@ app.use("/api/webhooks", webhookRoutes);
 app.use(express.json());
 app.use(cookieParser());
 
-app.use("/api/auth", authenticationRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/books", bookRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/author", authorRoutes);
-app.use("/api/purchase", purchaseRoutes);
-app.use("/api/contact", contactRoutes);
+app.use("/api", apiRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to the Inkling Backend API!" });
