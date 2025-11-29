@@ -2,6 +2,7 @@ const {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
 } = require("@aws-sdk/client-s3");
 const multer = require("multer");
 const crypto = require("crypto");
@@ -67,8 +68,29 @@ async function deleteFileFromS3(fileUrl) {
   }
 }
 
+async function getFileStream(fileUrl) {
+  const bucketName = process.env.AWS_S3_BUCKET_NAME;
+  const region = process.env.AWS_REGION;
+  const baseUrl = `https://${bucketName}.s3.${region}.amazonaws.com/`;
+
+  if (!fileUrl || !fileUrl.startsWith(baseUrl)) {
+    throw new Error("Invalid file URL configuration.");
+  }
+
+  const key = fileUrl.replace(baseUrl, "");
+
+  const command = new GetObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+  });
+
+  const response = await s3Client.send(command);
+  return response.Body;
+}
+
 module.exports = {
   upload,
   uploadFileToS3,
   deleteFileFromS3,
+  getFileStream,
 };

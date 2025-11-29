@@ -41,7 +41,7 @@ export default function BooksPage() {
 
       {loading ? (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-8">
-          {[...Array(8)].map((_, i) => (
+          {[...Array(18)].map((_, i) => (
             <div key={i} className="flex flex-col h-full">
               <Skeleton className="aspect-[2/3] w-full rounded-lg" />
               <div className="mt-4 space-y-2">
