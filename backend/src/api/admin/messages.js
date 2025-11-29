@@ -1,7 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../../config/database");
-const { body, validationResult } = require("express-validator");
+
+const { messageStatusRules } = require("./validator");
+const validate = require("../../middleware/validate");
 
 router.get("/", async (req, res) => {
   try {
@@ -34,17 +36,9 @@ router.get("/", async (req, res) => {
 
 router.put(
   "/:id/status",
-  [
-    body("status")
-      .isIn(["NEW", "READ", "RESOLVED"])
-      .withMessage("Invalid status."),
-  ],
+  messageStatusRules(),
+  validate,
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ error: errors.array()[0].msg });
-    }
-
     const { id } = req.params;
     const { status } = req.body;
 

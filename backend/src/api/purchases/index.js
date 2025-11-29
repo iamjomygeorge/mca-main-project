@@ -1,8 +1,10 @@
 const express = require("express");
 const pool = require("../../config/database");
 const authenticateToken = require("../../middleware/authenticateToken");
-const { body, validationResult } = require("express-validator");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
+const { purchaseInitiateRules } = require("./validator");
+const validate = require("../../middleware/validate");
 
 const router = express.Router();
 
@@ -14,12 +16,9 @@ const PLATFORM_COMMISSION_RATE = parseFloat(
 
 router.post(
   "/initiate",
-  [body("bookId").isUUID().withMessage("Valid Book ID is required.")],
+  purchaseInitiateRules(),
+  validate,
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array().map((e) => e.msg) });
-    }
 
     const { bookId } = req.body;
     const userId = req.user.userId;

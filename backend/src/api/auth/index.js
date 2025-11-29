@@ -7,11 +7,8 @@ const { send2faEmail } = require("../../services/emailService");
 const { OAuth2Client } = require("google-auth-library");
 const cookieParser = require("cookie-parser");
 
-const {
-  registrationRules,
-  loginRules,
-  validate,
-} = require("../../middleware/authValidator");
+const { registrationRules, loginRules } = require("./validator");
+const validate = require("../../middleware/validate");
 
 const router = express.Router();
 

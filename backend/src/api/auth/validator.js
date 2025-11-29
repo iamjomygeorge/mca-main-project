@@ -1,18 +1,5 @@
-const { body, validationResult } = require("express-validator");
-const pool = require("../config/database");
-
-const validate = (req, res, next) => {
-  const errors = validationResult(req);
-  if (errors.isEmpty()) {
-    return next();
-  }
-  const extractedErrors = [];
-  errors.array().map((err) => extractedErrors.push({ [err.path]: err.msg }));
-
-  return res.status(400).json({
-    errors: extractedErrors,
-  });
-};
+const { body } = require("express-validator");
+const pool = require("../../config/database");
 
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+={}[\]:;"'<>,.?/~\\`|-])[A-Za-z\d !@#$%^&*()_+={}[\]:;"'<>,.?/~\\`|-]{8,}$/;
@@ -98,23 +85,7 @@ const loginRules = () => {
   ];
 };
 
-const passwordChangeRules = () => {
-  return [
-    body("currentPassword")
-      .exists({ checkFalsy: true })
-      .withMessage("Current password is required."),
-    body("newPassword")
-      .isLength({ min: 8 })
-      .withMessage("New password must be at least 8 characters long.")
-      .bail()
-      .matches(passwordRegex)
-      .withMessage(passwordErrorMessage),
-  ];
-};
-
 module.exports = {
   registrationRules,
   loginRules,
-  passwordChangeRules,
-  validate,
 };

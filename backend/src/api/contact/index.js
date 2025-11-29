@@ -1,42 +1,12 @@
 const express = require("express");
 const pool = require("../../config/database");
-const { body, validationResult } = require("express-validator");
+
+const { contactRules } = require("./validator");
+const validate = require("../../middleware/validate");
 
 const router = express.Router();
 
-const contactValidationRules = () => {
-  return [
-    body("fullName")
-      .trim()
-      .notEmpty()
-      .withMessage("Full name is required.")
-      .isLength({ min: 2 })
-      .withMessage("Full name must be at least 2 characters long.")
-      .escape(),
-    body("email")
-      .trim()
-      .isEmail()
-      .withMessage("Please provide a valid email address.")
-      .normalizeEmail(),
-    body("message")
-      .trim()
-      .notEmpty()
-      .withMessage("Message cannot be empty.")
-      .isLength({ min: 10 })
-      .withMessage("Message must be at least 10 characters long.")
-      .escape(),
-  ];
-};
-
-const validate = (req, res, next) => {
-  const errors = validationResult(req);
-  if (errors.isEmpty()) {
-    return next();
-  }
-  return res.status(400).json({ error: errors.array()[0].msg });
-};
-
-router.post("/", contactValidationRules(), validate, async (req, res) => {
+router.post("/", contactRules(), validate, async (req, res) => {
   const { fullName, email, message } = req.body;
   let userId = null;
 

@@ -7,7 +7,9 @@ const {
   uploadFileToS3,
   deleteFileFromS3,
 } = require("../../services/fileUpload");
-const { body, validationResult } = require("express-validator");
+
+const { bookUploadRules } = require("./validator");
+const validate = require("../../middleware/validate");
 
 const router = express.Router();
 
@@ -72,38 +74,15 @@ router.get("/my-books", async (req, res, next) => {
   }
 });
 
-const bookUploadValidationRules = () => [
-  body("title").trim().notEmpty().withMessage("Book Title is required."),
-  body("description").optional({ checkFalsy: true }).trim(),
-  body("price")
-    .notEmpty()
-    .withMessage("Price is required.")
-    .isNumeric()
-    .withMessage("Price must be a number.")
-    .toFloat()
-    .isFloat({ min: 0.0 })
-    .withMessage("Price cannot be negative."),
-  body("currency")
-    .optional()
-    .trim()
-    .isLength({ min: 3, max: 3 })
-    .withMessage("Currency must be a 3-letter code (e.g., INR).")
-    .toUpperCase(),
-];
-
 router.post(
   "/books",
   upload.fields([
     { name: "bookFile", maxCount: 1 },
     { name: "coverImageFile", maxCount: 1 },
   ]),
-  bookUploadValidationRules(),
+  bookUploadRules(),
+  validate,
   async (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      const errorMessages = errors.array().map((err) => err.msg);
-      return res.status(400).json({ errors: errorMessages });
-    }
 
     const client = await pool.connect();
 

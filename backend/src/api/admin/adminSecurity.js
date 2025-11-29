@@ -1,10 +1,10 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const pool = require("../../config/database");
-const {
-  passwordChangeRules,
-  validate,
-} = require("../../middleware/authValidator");
+
+const { passwordChangeRules } = require("./validator");
+const validate = require("../../middleware/validate");
+
 const { send2faEmail } = require("../../services/emailService");
 const crypto = require("crypto");
 
