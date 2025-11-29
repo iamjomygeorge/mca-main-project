@@ -5,14 +5,11 @@ const pool = require("../../config/database");
 const crypto = require("crypto");
 const { send2faEmail } = require("../../services/emailService");
 const { OAuth2Client } = require("google-auth-library");
-const cookieParser = require("cookie-parser");
 
 const { registrationRules, loginRules } = require("./validator");
 const validate = require("../../middleware/validate");
 
 const router = express.Router();
-
-router.use(cookieParser());
 
 const saltRounds = 10;
 const OTP_EXPIRY_MINUTES = 10;
