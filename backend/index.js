@@ -6,13 +6,13 @@ const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
 const pool = require("./src/config/database");
 
-const authenticationRoutes = require("./src/api/authentication");
-const userRoutes = require("./src/api/userProfile.js");
+const authenticationRoutes = require("./src/api/auth");
+const userRoutes = require("./src/api/users");
 const bookRoutes = require("./src/api/books");
 const adminRoutes = require("./src/api/admin");
 const authorRoutes = require("./src/api/author");
 const webhookRoutes = require("./src/api/webhooks");
-const purchaseRoutes = require("./src/api/purchase");
+const purchaseRoutes = require("./src/api/purchases");
 const contactRoutes = require("./src/api/contact");
 
 const app = express();

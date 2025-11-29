@@ -1,9 +1,9 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const pool = require("../config/database");
+const pool = require("../../config/database");
 const crypto = require("crypto");
-const { send2faEmail } = require("../services/emailService");
+const { send2faEmail } = require("../../services/emailService");
 const { OAuth2Client } = require("google-auth-library");
 const cookieParser = require("cookie-parser");
 
@@ -11,7 +11,7 @@ const {
   registrationRules,
   loginRules,
   validate,
-} = require("../middleware/authValidator");
+} = require("../../middleware/authValidator");
 
 const router = express.Router();
 

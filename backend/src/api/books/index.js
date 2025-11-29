@@ -1,7 +1,7 @@
 const express = require("express");
-const pool = require("../config/database");
-const optionalAuthenticateToken = require("../middleware/optionalAuthenticateToken");
-const { getFileStream } = require("../services/fileUpload");
+const pool = require("../../config/database");
+const optionalAuthenticateToken = require("../../middleware/optionalAuthenticateToken");
+const { getFileStream } = require("../../services/fileUpload");
 const jwt = require("jsonwebtoken");
 
 const router = express.Router();

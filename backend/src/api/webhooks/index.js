@@ -1,6 +1,6 @@
 const express = require("express");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-const pool = require("../config/database");
+const pool = require("../../config/database");
 
 const router = express.Router();
 

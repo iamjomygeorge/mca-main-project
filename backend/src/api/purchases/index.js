@@ -1,6 +1,6 @@
 const express = require("express");
-const pool = require("../config/database");
-const authenticateToken = require("../middleware/authenticateToken");
+const pool = require("../../config/database");
+const authenticateToken = require("../../middleware/authenticateToken");
 const { body, validationResult } = require("express-validator");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
