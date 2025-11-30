@@ -273,7 +273,7 @@ export default function BookReaderPage() {
           <div className="flex-shrink-0 w-40 aspect-[2/3] relative">
             <Image
               src={bookData.cover_image_url || "/placeholder-cover.png"}
-              alt={`Cover of ${book.title}`}
+              alt={`Cover of ${bookData.title}`}
               fill
               sizes="160px"
               className="object-contain rounded shadow-lg"
