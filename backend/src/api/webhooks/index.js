@@ -36,11 +36,6 @@ router.post(
         await handleCheckoutSessionCompleted(session);
 
         break;
-      // TODO: Handle other event types if needed (e.g., payment_failed)
-      // case 'checkout.session.async_payment_failed':
-      //   const failedSession = event.data.object;
-      //   // Logic to mark purchase as FAILED
-      //   break;
       default:
         console.log(`Unhandled event type ${event.type}`);
     }

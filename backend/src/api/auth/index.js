@@ -359,7 +359,6 @@ router.get("/google/callback", async (req, res) => {
       [googleId]
     );
     let user = userResult.rows[0];
-    let isNewUser = false;
 
     if (user) {
       if (user.role === "AUTHOR") {
@@ -415,7 +414,6 @@ router.get("/google/callback", async (req, res) => {
         console.log(
           `Creating new READER user via Google Sign-In for email ${email}`
         );
-        isNewUser = true;
 
         const newUserRes = await client.query(
           "INSERT INTO users (full_name, email, google_id, role, auth_method, password_hash, username) VALUES ($1, $2, $3, $4, $5, NULL, NULL) RETURNING *",

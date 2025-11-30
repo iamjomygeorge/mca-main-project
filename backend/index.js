@@ -43,17 +43,6 @@ app.get("/", (req, res) => {
   res.json({ message: "Welcome to the Inkling Backend API!" });
 });
 
-app.get("/database-test", async (req, res, next) => {
-  try {
-    const client = await pool.connect();
-    const result = await client.query("SELECT NOW()");
-    res.json(result.rows[0]);
-    client.release();
-  } catch (err) {
-    next(err);
-  }
-});
-
 app.use((req, res, next) => {
   res.status(404).json({ error: "Endpoint not found" });
 });
