@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const logger = require("../config/logger");
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
@@ -20,10 +21,10 @@ const sendEmail = async ({ to, subject, text, html }) => {
       html: html,
     });
 
-    console.log("Email sent: %s", info.messageId);
+    logger.info({ messageId: info.messageId }, "Email sent successfully");
     return info;
   } catch (error) {
-    console.error("Error sending email:", error);
+    logger.error(error, "Error sending email");
     throw new Error("Failed to send email.");
   }
 };

@@ -30,7 +30,7 @@ router.get("/", async (req, res, next) => {
 
     res.json(allBooks.rows);
   } catch (err) {
-    console.error("Get All Books Error:", err.message);
+    req.log.error(err, "Get All Books Error");
     next(err);
   }
 });
@@ -53,7 +53,7 @@ router.get("/featured", async (req, res, next) => {
     );
     res.json(featuredBooks.rows);
   } catch (err) {
-    console.error("Get Featured Books Error:", err.message);
+    req.log.error(err, "Get Featured Books Error");
     next(err);
   }
 });
@@ -98,7 +98,7 @@ router.get("/:id/content", async (req, res, next) => {
     res.setHeader("Content-Type", "application/epub+zip");
     fileStream.pipe(res);
   } catch (err) {
-    console.error("Secure Content Stream Error:", err.message);
+    req.log.error(err, "Secure Content Stream Error");
     if (err.name === "JsonWebTokenError") {
       return res.status(403).json({ error: "Invalid token." });
     }
@@ -162,7 +162,7 @@ router.get("/:id", optionalAuthenticateToken, async (req, res, next) => {
 
     res.json(responseData);
   } catch (err) {
-    console.error("Get Single Book Error:", err.message, err.stack);
+    req.log.error(err, "Get Single Book Error");
     next(err);
   }
 });

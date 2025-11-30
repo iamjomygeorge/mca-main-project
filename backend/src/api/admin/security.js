@@ -25,8 +25,9 @@ router.put(
         [userId, "ADMIN"]
       );
       if (userResult.rows.length === 0) {
-        console.warn(
-          `Admin user ${userId} not found during password update attempt.`
+        req.log.warn(
+          { userId },
+          "Admin user not found during password update attempt."
         );
         return res.status(404).json({ error: "Admin user not found." });
       }
@@ -36,8 +37,9 @@ router.put(
         user.password_hash
       );
       if (!isPasswordValid) {
-        console.warn(
-          `Incorrect current password attempt for admin user ${userId}.`
+        req.log.warn(
+          { userId },
+          "Incorrect current password attempt for admin user."
         );
         return res.status(401).json({ error: "Incorrect current password." });
       }
@@ -48,7 +50,7 @@ router.put(
       ]);
       res.json({ message: "Password updated successfully." });
     } catch (err) {
-      console.error("Admin Change Password Error:", err);
+      req.log.error(err, "Admin Change Password Error");
       next(err);
     }
   }
@@ -83,7 +85,7 @@ router.post("/2fa/enable-request", async (req, res, next) => {
 
     res.json({ message: `A verification code has been sent to ${email}.` });
   } catch (err) {
-    console.error("Admin 2FA Enable Request Error:", err);
+    req.log.error(err, "Admin 2FA Enable Request Error");
     next(err);
   }
 });
@@ -136,7 +138,7 @@ router.post("/2fa/enable-verify", async (req, res, next) => {
 
     res.json({ message: "Two-Factor Authentication enabled successfully." });
   } catch (err) {
-    console.error("Admin 2FA Verify Error:", err);
+    req.log.error(err, "Admin 2FA Verify Error");
     next(err);
   }
 });
@@ -181,7 +183,7 @@ router.post("/2fa/disable", async (req, res, next) => {
 
     res.json({ message: "Two-Factor Authentication disabled successfully." });
   } catch (err) {
-    console.error("Admin 2FA Disable Error:", err);
+    req.log.error(err, "Admin 2FA Disable Error");
     next(err);
   }
 });

@@ -19,7 +19,7 @@ router.get("/overview", async (req, res, next) => {
 
     res.json(stats);
   } catch (error) {
-    console.error("Error fetching overview stats:", error);
+    req.log.error(error, "Error fetching overview stats");
     next(error);
   }
 });

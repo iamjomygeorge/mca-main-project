@@ -4,18 +4,8 @@ const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
 const compression = require("compression");
-
-const pino = require("pino-http")({
-  transport:
-    process.env.NODE_ENV !== "production"
-      ? {
-          target: "pino-pretty",
-          options: {
-            colorize: true,
-          },
-        }
-      : undefined,
-});
+const logger = require("./src/config/logger");
+const pinoHttp = require("pino-http")({ logger });
 
 const validateEnvironment = require("./src/config/env.validation");
 validateEnvironment();
@@ -45,7 +35,7 @@ app.use(
 );
 
 app.use(compression());
-app.use(pino);
+app.use(pinoHttp);
 
 const corsOptions = {
   origin: process.env.FRONTEND_URL,
@@ -101,15 +91,15 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 8080;
 
 const server = app.listen(PORT, () => {
-  console.log(`Backend server is running on http://localhost:${PORT}`);
+  logger.info(`Backend server is running on http://localhost:${PORT}`);
 });
 
 const shutdown = async () => {
-  console.log("SIGTERM/SIGINT received: closing HTTP server");
+  logger.info("SIGTERM/SIGINT received: closing HTTP server");
   server.close(async () => {
-    console.log("HTTP server closed");
+    logger.info("HTTP server closed");
     await pool.end();
-    console.log("Database pool closed");
+    logger.info("Database pool closed");
     process.exit(0);
   });
 };

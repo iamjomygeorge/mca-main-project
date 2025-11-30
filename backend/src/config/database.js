@@ -1,4 +1,5 @@
 const { Pool } = require("pg");
+const logger = require("./logger");
 
 const rejectUnauthorized = process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false";
 
@@ -13,12 +14,12 @@ const pool = new Pool(connectionConfig);
 
 pool.on("error", (err, client) => {
   if (err.message && err.message.includes("db_termination")) {
-    console.warn(
+    logger.warn(
       "Database idle connection closed by server. Pool will reconnect automatically."
     );
     return;
   }
-  console.error("Unexpected error on idle client", err);
+  logger.error(err, "Unexpected error on idle client");
 });
 
 module.exports = pool;

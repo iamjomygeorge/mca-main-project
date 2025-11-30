@@ -9,7 +9,7 @@ router.get("/", async (req, res, next) => {
     );
     res.json(classicAuthors.rows);
   } catch (err) {
-    console.error("Get Classic Authors Error:", err.message);
+    req.log.error(err, "Get Classic Authors Error");
     next(err);
   }
 });

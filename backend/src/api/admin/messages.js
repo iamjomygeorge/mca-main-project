@@ -29,7 +29,7 @@ router.get("/", async (req, res, next) => {
     `);
     res.json(messagesResult.rows);
   } catch (err) {
-    console.error("Error fetching contact messages:", err);
+    req.log.error(err, "Error fetching contact messages");
     next(err);
   }
 });
@@ -54,7 +54,7 @@ router.put(
 
       res.json(updateResult.rows[0]);
     } catch (err) {
-      console.error("Error updating message status:", err);
+      req.log.error(err, "Error updating message status");
       next(err);
     }
   }
@@ -74,7 +74,7 @@ router.delete("/:id", async (req, res, next) => {
 
     res.status(204).send();
   } catch (err) {
-    console.error("Error deleting message:", err);
+    req.log.error(err, "Error deleting message");
     next(err);
   }
 });

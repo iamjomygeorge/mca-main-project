@@ -19,7 +19,7 @@ router.get("/me", authenticateToken, async (req, res, next) => {
 
     res.json(userProfile.rows[0]);
   } catch (err) {
-    console.error("Get Profile Error:", err.message);
+    req.log.error(err, "Get Profile Error");
     next(err);
   }
 });

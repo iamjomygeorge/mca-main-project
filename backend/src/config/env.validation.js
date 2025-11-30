@@ -1,3 +1,5 @@
+const logger = require("./logger");
+
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
@@ -37,8 +39,8 @@ const validateEnvironment = () => {
   const missing = requiredVars.filter((key) => !process.env[key]);
 
   if (missing.length > 0) {
-    console.error("CRITICAL ERROR: Missing environment variables:");
-    missing.forEach((key) => console.error(`   - ${key}`));
+    logger.fatal("CRITICAL ERROR: Missing environment variables:");
+    missing.forEach((key) => logger.fatal(`   - ${key}`));
     process.exit(1);
   }
 };

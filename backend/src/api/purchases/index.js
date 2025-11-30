@@ -65,7 +65,7 @@ router.post(
 
       if (pendingCheck.rows.length > 0) {
         purchaseId = pendingCheck.rows[0].id;
-        console.log(`Reusing existing PENDING purchase ID: ${purchaseId}`);
+        req.log.info({ purchaseId }, "Reusing existing PENDING purchase ID");
         await client.query(
           "UPDATE purchases SET updated_at = current_timestamp WHERE id = $1",
           [purchaseId]
@@ -90,7 +90,7 @@ router.post(
           ]
         );
         purchaseId = purchaseResult.rows[0].id;
-        console.log(`Created new PENDING purchase ID: ${purchaseId}`);
+        req.log.info({ purchaseId }, "Created new PENDING purchase ID");
       }
 
       const session = await stripe.checkout.sessions.create({
@@ -122,7 +122,7 @@ router.post(
       res.json({ checkoutUrl: session.url });
     } catch (err) {
       await client.query("ROLLBACK");
-      console.error("Purchase Initiation Error:", err);
+      req.log.error(err, "Purchase Initiation Error");
       if (err.type === "StripeCardError") {
         return res.status(400).json({ error: err.message });
       }
@@ -150,7 +150,7 @@ router.get("/my-library", async (req, res, next) => {
     );
     res.json(libraryResult.rows);
   } catch (err) {
-    console.error("Get My Library Error:", err);
+    req.log.error(err, "Get My Library Error");
     next(err);
   }
 });

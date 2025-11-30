@@ -8,6 +8,7 @@ const multer = require("multer");
 const crypto = require("crypto");
 const fs = require("fs");
 const os = require("os");
+const logger = require("../config/logger");
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
@@ -79,8 +80,9 @@ async function deleteFileFromS3(fileUrl) {
     const baseUrl = `https://${bucketName}.s3.${region}.amazonaws.com/`;
 
     if (!fileUrl.startsWith(baseUrl)) {
-      console.warn(
-        `Skipping S3 delete: URL does not match expected bucket pattern. URL: ${fileUrl}`
+      logger.warn(
+        { fileUrl },
+        "Skipping S3 delete: URL does not match expected bucket pattern."
       );
       return;
     }
@@ -93,11 +95,11 @@ async function deleteFileFromS3(fileUrl) {
     });
 
     await s3Client.send(command);
-    console.log(`Successfully rolled back (deleted) S3 file: ${key}`);
+    logger.info({ key }, "Successfully rolled back (deleted) S3 file.");
   } catch (err) {
-    console.error(
-      `Failed to delete file from S3 during rollback: ${fileUrl}`,
-      err
+    logger.error(
+      err,
+      `Failed to delete file from S3 during rollback: ${fileUrl}`
     );
   }
 }
@@ -128,7 +130,7 @@ async function cleanupLocalFile(filePath) {
       await fs.promises.unlink(filePath);
     }
   } catch (err) {
-    console.error(`Failed to cleanup local file ${filePath}:`, err);
+    logger.error(err, `Failed to cleanup local file ${filePath}`);
   }
 }
 
