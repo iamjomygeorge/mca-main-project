@@ -6,7 +6,7 @@ const validate = require("../../middleware/validation.middleware");
 
 const router = express.Router();
 
-router.post("/", contactRules(), validate, async (req, res) => {
+router.post("/", contactRules(), validate, async (req, res, next) => {
   const { fullName, email, message } = req.body;
   let userId = null;
 
@@ -38,9 +38,7 @@ router.post("/", contactRules(), validate, async (req, res) => {
     res.status(201).json({ message: "Message sent successfully!" });
   } catch (err) {
     console.error("Contact Form API Error:", err.message);
-    res
-      .status(500)
-      .json({ error: "Internal Server Error. Please try again later." });
+    next(err);
   } finally {
     client.release();
   }

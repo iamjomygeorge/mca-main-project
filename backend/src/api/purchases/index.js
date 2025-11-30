@@ -18,8 +18,7 @@ router.post(
   "/initiate",
   purchaseInitiateRules(),
   validate,
-  async (req, res) => {
-
+  async (req, res, next) => {
     const { bookId } = req.body;
     const userId = req.user.userId;
     const client = await pool.connect();
@@ -124,18 +123,18 @@ router.post(
     } catch (err) {
       await client.query("ROLLBACK");
       console.error("Purchase Initiation Error:", err);
-      const errorMessage =
-        err.type === "StripeCardError"
-          ? err.message
-          : "Internal Server Error creating payment session.";
-      res.status(500).json({ error: errorMessage });
+
+      if (err.type === "StripeCardError") {
+        return res.status(400).json({ error: err.message });
+      }
+      next(err);
     } finally {
       client.release();
     }
   }
 );
 
-router.get("/my-library", async (req, res) => {
+router.get("/my-library", async (req, res, next) => {
   const userId = req.user.userId;
   try {
     const libraryResult = await pool.query(
@@ -153,7 +152,7 @@ router.get("/my-library", async (req, res) => {
     res.json(libraryResult.rows);
   } catch (err) {
     console.error("Get My Library Error:", err);
-    res.status(500).json({ error: "Internal Server Error fetching library." });
+    next(err);
   }
 });
 

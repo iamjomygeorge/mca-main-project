@@ -24,83 +24,84 @@ function generateCsrfState() {
   return crypto.randomBytes(16).toString("hex");
 }
 
-router.post("/register", registrationRules(), validate, async (req, res) => {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
+router.post(
+  "/register",
+  registrationRules(),
+  validate,
+  async (req, res, next) => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
 
-    const { fullName, email, password, username, role } = req.body;
+      const { fullName, email, password, username, role } = req.body;
 
-    const userRole = role === "AUTHOR" ? "AUTHOR" : "READER";
-    if (userRole === "AUTHOR" && !password) {
-      await client.query("ROLLBACK");
-      return res
-        .status(400)
-        .json({ error: "Password is required for author registration." });
-    }
-    if (userRole === "AUTHOR" && !username) {
-      await client.query("ROLLBACK");
-      return res
-        .status(400)
-        .json({ error: "Username is required for author registration." });
-    }
-
-    const passwordHash = password
-      ? await bcrypt.hash(password, saltRounds)
-      : null;
-
-    const newUserRes = await client.query(
-      "INSERT INTO users (full_name, username, email, password_hash, role, auth_method) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-      [fullName, username || null, email, passwordHash, userRole, "email"]
-    );
-    const newUser = newUserRes.rows[0];
-
-    if (newUser.role === "AUTHOR") {
-      if (!newUser.username) {
+      const userRole = role === "AUTHOR" ? "AUTHOR" : "READER";
+      if (userRole === "AUTHOR" && !password) {
         await client.query("ROLLBACK");
-        console.error(
-          `Attempted to create author entry without username for user ID: ${newUser.id}`
-        );
         return res
-          .status(500)
-          .json({ error: "Internal error: Author username missing." });
+          .status(400)
+          .json({ error: "Password is required for author registration." });
       }
-      await client.query(
-        "INSERT INTO authors (name, user_id) VALUES ($1, $2)",
-        [newUser.username, newUser.id]
+      if (userRole === "AUTHOR" && !username) {
+        await client.query("ROLLBACK");
+        return res
+          .status(400)
+          .json({ error: "Username is required for author registration." });
+      }
+
+      const passwordHash = password
+        ? await bcrypt.hash(password, saltRounds)
+        : null;
+
+      const newUserRes = await client.query(
+        "INSERT INTO users (full_name, username, email, password_hash, role, auth_method) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+        [fullName, username || null, email, passwordHash, userRole, "email"]
       );
-    }
+      const newUser = newUserRes.rows[0];
 
-    await client.query("COMMIT");
+      if (newUser.role === "AUTHOR") {
+        if (!newUser.username) {
+          await client.query("ROLLBACK");
+          console.error(
+            `Attempted to create author entry without username for user ID: ${newUser.id}`
+          );
+          throw new Error("Internal error: Author username missing.");
+        }
+        await client.query(
+          "INSERT INTO authors (name, user_id) VALUES ($1, $2)",
+          [newUser.username, newUser.id]
+        );
+      }
 
-    const {
-      password_hash,
-      two_factor_otp,
-      two_factor_otp_expiry,
-      google_id,
-      ...safeUser
-    } = newUser;
-    res.status(201).json(safeUser);
-  } catch (err) {
-    await client.query("ROLLBACK");
-    console.error("Registration Error:", err);
-    if (err.code === "23505") {
-      let field = "email or username";
-      if (err.constraint === "users_email_key") field = "email address";
-      if (err.constraint === "users_username_key") field = "username";
-      return res.status(400).json({
-        error: `An account with this ${field} already exists.`,
-      });
+      await client.query("COMMIT");
+
+      const {
+        password_hash,
+        two_factor_otp,
+        two_factor_otp_expiry,
+        google_id,
+        ...safeUser
+      } = newUser;
+      res.status(201).json(safeUser);
+    } catch (err) {
+      await client.query("ROLLBACK");
+      console.error("Registration Error:", err);
+      if (err.code === "23505") {
+        let field = "email or username";
+        if (err.constraint === "users_email_key") field = "email address";
+        if (err.constraint === "users_username_key") field = "username";
+        return res.status(400).json({
+          error: `An account with this ${field} already exists.`,
+        });
+      }
+      next(err);
+    } finally {
+      client.release();
     }
-    res
-      .status(500)
-      .json({ error: "Internal Server Error during registration." });
-  } finally {
-    client.release();
   }
-});
+);
 
-router.post("/login", loginRules(), validate, async (req, res) => {
+router.post("/login", loginRules(), validate, async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
@@ -124,9 +125,7 @@ router.post("/login", loginRules(), validate, async (req, res) => {
       console.error(
         `Login Error: User ${user.id} with email auth method has no password hash.`
       );
-      return res.status(500).json({
-        error: "Account configuration error. Please contact support.",
-      });
+      throw new Error("Account configuration error. Please contact support.");
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
@@ -175,11 +174,11 @@ router.post("/login", loginRules(), validate, async (req, res) => {
     }
   } catch (err) {
     console.error("Login Error:", err);
-    res.status(500).json({ error: "Internal Server Error during login." });
+    next(err);
   }
 });
 
-router.post("/login-2fa", async (req, res) => {
+router.post("/login-2fa", async (req, res, next) => {
   try {
     const { tempToken, token: otpCode } = req.body;
 
@@ -268,9 +267,7 @@ router.post("/login-2fa", async (req, res) => {
         console.error("Error clearing OTP during 2FA failure:", clearOtpError);
       }
     }
-    res
-      .status(500)
-      .json({ error: "Internal Server Error during 2FA verification." });
+    next(err);
   }
 });
 
@@ -295,7 +292,7 @@ router.get("/google", (req, res) => {
   res.redirect(url);
 });
 
-router.get("/google/callback", async (req, res) => {
+router.get("/google/callback", async (req, res, next) => {
   const { code, state, error } = req.query;
   const storedState = req.cookies?.oauth_state;
 

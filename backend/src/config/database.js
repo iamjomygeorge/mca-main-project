@@ -4,18 +4,22 @@ if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
 
-const rejectUnauthorized = process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false";
+const isProduction = process.env.NODE_ENV === "production";
 
-const pool = new Pool({
+const connectionConfig = {
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: rejectUnauthorized,
-  },
-});
+  ssl: isProduction
+    ? { rejectUnauthorized: true }
+    : { rejectUnauthorized: false },
+};
+
+const pool = new Pool(connectionConfig);
 
 pool.on("error", (err, client) => {
-  console.error("Unexpected error on idle client", err);
-  process.exit(-1);
+  console.error(
+    "Unexpected error on idle client (likely Supabase idle timeout)",
+    err
+  );
 });
 
 module.exports = pool;

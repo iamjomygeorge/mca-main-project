@@ -5,7 +5,7 @@ const pool = require("../../config/database");
 const { messageStatusRules } = require("./admin.validator");
 const validate = require("../../middleware/validation.middleware");
 
-router.get("/", async (req, res) => {
+router.get("/", async (req, res, next) => {
   try {
     const messagesResult = await pool.query(`
       SELECT
@@ -30,7 +30,7 @@ router.get("/", async (req, res) => {
     res.json(messagesResult.rows);
   } catch (err) {
     console.error("Error fetching contact messages:", err);
-    res.status(500).json({ error: "Failed to retrieve messages." });
+    next(err);
   }
 });
 
@@ -38,7 +38,7 @@ router.put(
   "/:id/status",
   messageStatusRules(),
   validate,
-  async (req, res) => {
+  async (req, res, next) => {
     const { id } = req.params;
     const { status } = req.body;
 
@@ -55,12 +55,12 @@ router.put(
       res.json(updateResult.rows[0]);
     } catch (err) {
       console.error("Error updating message status:", err);
-      res.status(500).json({ error: "Failed to update message." });
+      next(err);
     }
   }
 );
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", async (req, res, next) => {
   const { id } = req.params;
   try {
     const deleteResult = await pool.query(
@@ -75,7 +75,7 @@ router.delete("/:id", async (req, res) => {
     res.status(204).send();
   } catch (err) {
     console.error("Error deleting message:", err);
-    res.status(500).json({ error: "Failed to delete message." });
+    next(err);
   }
 });
 
