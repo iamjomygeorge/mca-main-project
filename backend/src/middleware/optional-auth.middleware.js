@@ -12,7 +12,8 @@ function optionalAuthenticateToken(req, res, next) {
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
       req.user = null;
-      console.warn(
+      req.log.warn(
+        { err },
         "Optional auth: Invalid token received, proceeding anonymously."
       );
     } else {

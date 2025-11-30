@@ -9,6 +9,11 @@ const validate = (req, res, next) => {
   const extractedErrors = [];
   errors.array().map((err) => extractedErrors.push({ [err.path]: err.msg }));
 
+  req.log.warn(
+    { validationErrors: extractedErrors },
+    "Request validation failed."
+  );
+
   return res.status(400).json({
     errors: extractedErrors,
   });

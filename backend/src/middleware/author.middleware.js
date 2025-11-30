@@ -1,9 +1,15 @@
 function isAuthor(req, res, next) {
   // Assumes authenticateToken middleware runs before this
-  if (req.user && req.user.role === 'AUTHOR') {
+  if (req.user && req.user.role === "AUTHOR") {
     next();
   } else {
-    return res.status(403).json({ error: "Forbidden: Access is restricted to authors." });
+    req.log.warn(
+      { userId: req.user?.userId, role: req.user?.role },
+      "Access denied: User is not an Author."
+    );
+    return res
+      .status(403)
+      .json({ error: "Forbidden: Access is restricted to authors." });
   }
 }
 
