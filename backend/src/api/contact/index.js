@@ -20,13 +20,9 @@ router.post("/", contactRules(), validate, async (req, res, next) => {
 
     if (userResult.rows.length > 0) {
       userId = userResult.rows[0].id;
-      console.log(
-        `Contact form: Found matching user ID ${userId} for email ${email}`
-      );
+      req.log.info({ userId, email }, "Contact form: Found matching user.");
     } else {
-      console.log(
-        `Contact form: No matching user found for email ${email}. Storing as guest message.`
-      );
+      req.log.info({ email }, "Contact form: Guest message.");
     }
 
     await client.query(
@@ -37,7 +33,7 @@ router.post("/", contactRules(), validate, async (req, res, next) => {
 
     res.status(201).json({ message: "Message sent successfully!" });
   } catch (err) {
-    console.error("Contact Form API Error:", err.message);
+    req.log.error(err, "Contact Form API Error");
     next(err);
   } finally {
     client.release();

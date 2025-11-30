@@ -4,6 +4,7 @@ const {
   upload,
   uploadFileToS3,
   deleteFileFromS3,
+  cleanupLocalFile,
 } = require("../../services/storage.service");
 
 const { bookUploadRules } = require("./admin.validator");
@@ -20,11 +21,15 @@ router.post(
   bookUploadRules(),
   validate,
   async (req, res, next) => {
-
     const client = await pool.connect();
 
     let bookFileUrl = null;
     let coverImageUrl = null;
+
+    const bookFile = req.files["bookFile"] ? req.files["bookFile"][0] : null;
+    const coverImageFile = req.files["coverImageFile"]
+      ? req.files["coverImageFile"][0]
+      : null;
 
     try {
       const {
@@ -33,11 +38,6 @@ router.post(
         authorId: existingAuthorId,
         newAuthorName,
       } = req.body;
-
-      const bookFile = req.files["bookFile"] ? req.files["bookFile"][0] : null;
-      const coverImageFile = req.files["coverImageFile"]
-        ? req.files["coverImageFile"][0]
-        : null;
 
       if (!bookFile) {
         return res.status(400).json({ error: "Book file (EPUB) is required." });
@@ -60,7 +60,7 @@ router.post(
       }
 
       bookFileUrl = await uploadFileToS3(
-        bookFile.buffer,
+        bookFile.path,
         bookFile.originalname,
         bookFile.mimetype,
         "books/classic"
@@ -68,7 +68,7 @@ router.post(
 
       if (coverImageFile) {
         coverImageUrl = await uploadFileToS3(
-          coverImageFile.buffer,
+          coverImageFile.path,
           coverImageFile.originalname,
           coverImageFile.mimetype,
           "covers/classic"
@@ -82,16 +82,22 @@ router.post(
 
       await client.query("COMMIT");
 
+      req.log.info(
+        { bookId: newBookResult.rows[0].id },
+        "Admin uploaded classic book"
+      );
       res.status(201).json(newBookResult.rows[0]);
     } catch (err) {
       await client.query("ROLLBACK");
-      console.error("Admin Book Upload Error:", err);
+      req.log.error(err, "Admin Book Upload Error");
 
       if (bookFileUrl) await deleteFileFromS3(bookFileUrl);
       if (coverImageUrl) await deleteFileFromS3(coverImageUrl);
 
       next(err);
     } finally {
+      if (bookFile) await cleanupLocalFile(bookFile.path);
+      if (coverImageFile) await cleanupLocalFile(coverImageFile.path);
       client.release();
     }
   }
@@ -111,9 +117,13 @@ router.put("/:id/feature", async (req, res, next) => {
       return res.status(404).json({ error: "Book not found." });
     }
 
+    req.log.info(
+      { bookId: id, featured: feature },
+      "Book feature status updated"
+    );
     res.json(updatedBook.rows[0]);
   } catch (err) {
-    console.error("Feature Book Error:", err.message);
+    req.log.error(err, "Feature Book Error");
     next(err);
   }
 });

@@ -6,12 +6,22 @@ const {
 } = require("@aws-sdk/client-s3");
 const multer = require("multer");
 const crypto = require("crypto");
+const fs = require("fs");
+const os = require("os");
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
 });
 
-const storage = multer.memoryStorage();
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, os.tmpdir());
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = crypto.randomBytes(16).toString("hex");
+    cb(null, uniqueSuffix + "-" + file.originalname);
+  },
+});
 
 const upload = multer({
   storage: storage,
@@ -38,18 +48,19 @@ const upload = multer({
   },
 });
 
-async function uploadFileToS3(fileBuffer, originalname, mimetype, folderName) {
+async function uploadFileToS3(filePath, originalname, mimetype, folderName) {
   const uniqueFileName = `${crypto
     .randomBytes(16)
     .toString("hex")}-${originalname}`;
   const bucketName = process.env.AWS_S3_BUCKET_NAME;
-
   const s3Key = `${folderName}/${uniqueFileName}`;
+
+  const fileStream = fs.createReadStream(filePath);
 
   const command = new PutObjectCommand({
     Bucket: bucketName,
     Key: s3Key,
-    Body: fileBuffer,
+    Body: fileStream,
     ContentType: mimetype,
   });
 
@@ -65,7 +76,6 @@ async function deleteFileFromS3(fileUrl) {
   try {
     const bucketName = process.env.AWS_S3_BUCKET_NAME;
     const region = process.env.AWS_REGION;
-
     const baseUrl = `https://${bucketName}.s3.${region}.amazonaws.com/`;
 
     if (!fileUrl.startsWith(baseUrl)) {
@@ -112,9 +122,20 @@ async function getFileStream(fileUrl) {
   return response.Body;
 }
 
+async function cleanupLocalFile(filePath) {
+  try {
+    if (filePath) {
+      await fs.promises.unlink(filePath);
+    }
+  } catch (err) {
+    console.error(`Failed to cleanup local file ${filePath}:`, err);
+  }
+}
+
 module.exports = {
   upload,
   uploadFileToS3,
   deleteFileFromS3,
   getFileStream,
+  cleanupLocalFile,
 };

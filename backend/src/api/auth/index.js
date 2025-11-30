@@ -62,7 +62,7 @@ router.post(
       if (newUser.role === "AUTHOR") {
         if (!newUser.username) {
           await client.query("ROLLBACK");
-          console.error(
+          req.log.error(
             `Attempted to create author entry without username for user ID: ${newUser.id}`
           );
           throw new Error("Internal error: Author username missing.");
@@ -75,6 +75,11 @@ router.post(
 
       await client.query("COMMIT");
 
+      req.log.info(
+        { userId: newUser.id, role: newUser.role },
+        "New user registered"
+      );
+
       const {
         password_hash,
         two_factor_otp,
@@ -85,7 +90,7 @@ router.post(
       res.status(201).json(safeUser);
     } catch (err) {
       await client.query("ROLLBACK");
-      console.error("Registration Error:", err);
+      req.log.error(err, "Registration Error");
       if (err.code === "23505") {
         let field = "email or username";
         if (err.constraint === "users_email_key") field = "email address";
@@ -122,8 +127,9 @@ router.post("/login", loginRules(), validate, async (req, res, next) => {
     }
 
     if (user.auth_method === "email" && !user.password_hash) {
-      console.error(
-        `Login Error: User ${user.id} with email auth method has no password hash.`
+      req.log.error(
+        { userId: user.id },
+        "Login Error: Email auth user has no password hash."
       );
       throw new Error("Account configuration error. Please contact support.");
     }
@@ -131,6 +137,7 @@ router.post("/login", loginRules(), validate, async (req, res, next) => {
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isPasswordValid) {
+      req.log.warn({ email }, "Failed login: Invalid password");
       return res.status(401).json({ error: "Invalid credentials." });
     }
 
@@ -147,7 +154,7 @@ router.post("/login", loginRules(), validate, async (req, res, next) => {
       try {
         await send2faEmail(user.email, user.full_name, otpCode);
       } catch (emailError) {
-        console.error("Failed to send 2FA email:", emailError);
+        req.log.error(emailError, "Failed to send 2FA email");
       }
 
       const tempPayload = { userId: user.id, scope: "2fa_login" };
@@ -170,10 +177,11 @@ router.post("/login", loginRules(), validate, async (req, res, next) => {
         expiresIn: "1h",
       });
 
+      req.log.info({ userId: user.id }, "User logged in successfully");
       res.json({ token });
     }
   } catch (err) {
-    console.error("Login Error:", err);
+    req.log.error(err, "Login Error");
     next(err);
   }
 });
@@ -251,9 +259,10 @@ router.post("/login-2fa", async (req, res, next) => {
       expiresIn: "1h",
     });
 
+    req.log.info({ userId }, "User logged in via 2FA");
     res.json({ token: finalToken });
   } catch (err) {
-    console.error("Login 2FA Verify Error:", err);
+    req.log.error(err, "Login 2FA Verify Error");
     if (req.body.tempToken) {
       try {
         const decoded = jwt.decode(req.body.tempToken);
@@ -264,7 +273,7 @@ router.post("/login-2fa", async (req, res, next) => {
           );
         }
       } catch (clearOtpError) {
-        console.error("Error clearing OTP during 2FA failure:", clearOtpError);
+        req.log.error(clearOtpError, "Error clearing OTP during 2FA failure");
       }
     }
     next(err);
@@ -303,14 +312,14 @@ router.get("/google/callback", async (req, res) => {
   });
 
   if (error) {
-    console.error("Google OAuth Error:", error);
+    req.log.error({ error }, "Google OAuth Error from query");
     return res.redirect(
       `${process.env.FRONTEND_URL}/login?error=google_access_denied`
     );
   }
 
   if (!code || !state || !storedState || state !== storedState) {
-    console.error("Google OAuth Error: Missing code or state mismatch.");
+    req.log.error("Google OAuth Error: Missing code or state mismatch.");
     return res
       .status(400)
       .redirect(`${process.env.FRONTEND_URL}/login?error=invalid_state`);
@@ -343,7 +352,7 @@ router.get("/google/callback", async (req, res) => {
       );
     }
     if (!emailVerified) {
-      console.warn(`Google OAuth attempt with unverified email: ${email}`);
+      req.log.warn(`Google OAuth attempt with unverified email: ${email}`);
       return res.redirect(
         `${process.env.FRONTEND_URL}/login?error=google_email_unverified`
       );
@@ -359,7 +368,7 @@ router.get("/google/callback", async (req, res) => {
 
     if (user) {
       if (user.role === "AUTHOR") {
-        console.warn(
+        req.log.warn(
           `Author user ${user.id} (found by google_id) attempted Google Sign-In.`
         );
         await client.query("ROLLBACK");
@@ -367,8 +376,8 @@ router.get("/google/callback", async (req, res) => {
           `${process.env.FRONTEND_URL}/login?error=author_google_signin_prohibited`
         );
       }
-      console.log(
-        `User ${user.id} found via Google ID ${googleId}. Logging in as READER.`
+      req.log.info(
+        `User ${user.id} found via Google ID ${googleId}. Logging in.`
       );
     } else {
       userResult = await client.query("SELECT * FROM users WHERE email = $1", [
@@ -378,7 +387,7 @@ router.get("/google/callback", async (req, res) => {
 
       if (user) {
         if (user.role === "AUTHOR") {
-          console.warn(
+          req.log.warn(
             `Author user ${user.id} (found by email) attempted Google Sign-In.`
           );
           await client.query("ROLLBACK");
@@ -387,7 +396,7 @@ router.get("/google/callback", async (req, res) => {
           );
         }
 
-        console.log(
+        req.log.info(
           `Linking Google ID ${googleId} to existing READER user ${user.id}`
         );
         await client.query(
@@ -408,7 +417,7 @@ router.get("/google/callback", async (req, res) => {
           );
         }
       } else {
-        console.log(
+        req.log.info(
           `Creating new READER user via Google Sign-In for email ${email}`
         );
 
@@ -425,8 +434,8 @@ router.get("/google/callback", async (req, res) => {
     }
 
     if (user.role !== "READER") {
-      console.error(
-        `Attempting to issue token for non-READER user ${user.id} with role ${user.role} via Google flow.`
+      req.log.error(
+        `Attempting to issue token for non-READER user ${user.id} via Google flow.`
       );
       await client.query("ROLLBACK");
       return res.redirect(
@@ -444,13 +453,11 @@ router.get("/google/callback", async (req, res) => {
 
     await client.query("COMMIT");
 
-    console.log(
-      `Successfully processed Google Sign-In for READER user ${user.id}. Redirecting with token.`
-    );
+    req.log.info({ userId: user.id }, "Google Sign-In successful");
     res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error("Google OAuth Callback Error:", err);
+    req.log.error(err, "Google OAuth Callback Error");
     res.redirect(`${process.env.FRONTEND_URL}/login?error=google_auth_failed`);
   } finally {
     client.release();

@@ -10,6 +10,7 @@ COPY backend/package.json .
 # To install dependencies directly from package-lock.json, deletes any existing node_modules folder, doesn't need to resolve dependency versions.
 RUN npm ci --omit=dev
 COPY backend/ .
+USER node
 EXPOSE 8080
 
 CMD ["npm", "start"]

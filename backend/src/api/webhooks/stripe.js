@@ -15,43 +15,45 @@ router.post(
 
     try {
       if (!sig || !webhookSecret) {
-        console.error(
+        req.log.error(
           "Webhook Error: Missing Stripe signature or webhook secret."
         );
         return res.status(400).send("Webhook Error: Configuration issue.");
       }
       event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
     } catch (err) {
-      console.error(`Webhook signature verification failed.`, err.message);
+      req.log.error(err, "Webhook signature verification failed.");
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
     switch (event.type) {
       case "checkout.session.completed":
         const session = event.data.object;
-        console.log(
-          `Webhook received: Payment successful for session: ${session.id}`
+        req.log.info(
+          { sessionId: session.id },
+          "Webhook received: checkout.session.completed"
         );
 
-        await handleCheckoutSessionCompleted(session);
+        await handleCheckoutSessionCompleted(session, req.log || console);
 
         break;
       default:
-        console.log(`Unhandled event type ${event.type}`);
+        req.log.info({ type: event.type }, "Unhandled event type");
     }
 
     res.json({ received: true });
   }
 );
 
-async function handleCheckoutSessionCompleted(session) {
+async function handleCheckoutSessionCompleted(session, logger) {
   const purchaseId =
     session.client_reference_id || session.metadata?.purchaseId;
   const stripePaymentIntentId = session.payment_intent;
 
   if (!purchaseId) {
-    console.error(
-      `Webhook Error: Could not find purchaseId in session ${session.id}. ClientRef: ${session.client_reference_id}, Metadata: ${session.metadata?.purchaseId}`
+    logger.error(
+      { sessionId: session.id },
+      "Webhook Error: Could not find purchaseId in session."
     );
     return;
   }
@@ -66,7 +68,7 @@ async function handleCheckoutSessionCompleted(session) {
     );
 
     if (purchaseResult.rows.length === 0) {
-      console.warn(`Webhook: Purchase ${purchaseId} not found.`);
+      logger.warn({ purchaseId }, "Webhook: Purchase not found.");
       await client.query("ROLLBACK");
       return;
     }
@@ -74,8 +76,9 @@ async function handleCheckoutSessionCompleted(session) {
     const purchase = purchaseResult.rows[0];
 
     if (purchase.status !== "PENDING") {
-      console.log(
-        `Webhook: Purchase ${purchaseId} already processed (status: ${purchase.status}). Skipping.`
+      logger.info(
+        { purchaseId, status: purchase.status },
+        "Webhook: Purchase already processed."
       );
       await client.query("ROLLBACK");
       return;
@@ -92,12 +95,10 @@ async function handleCheckoutSessionCompleted(session) {
     );
 
     await client.query("COMMIT");
-    console.log(
-      `Webhook: Successfully processed purchase ${purchaseId} linked to session ${session.id}.`
-    );
+    logger.info({ purchaseId }, "Webhook: Successfully processed purchase.");
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error(`Webhook: Error processing purchase ${purchaseId}:`, err);
+    logger.error(err, `Webhook: Error processing purchase ${purchaseId}`);
   } finally {
     client.release();
   }

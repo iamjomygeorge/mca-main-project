@@ -1,10 +1,21 @@
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
-const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
 const compression = require("compression");
+
+const pino = require("pino-http")({
+  transport:
+    process.env.NODE_ENV !== "production"
+      ? {
+          target: "pino-pretty",
+          options: {
+            colorize: true,
+          },
+        }
+      : undefined,
+});
 
 const validateEnvironment = require("./src/config/env.validation");
 validateEnvironment();
@@ -17,11 +28,24 @@ const app = express();
 
 app.set("trust proxy", 1);
 
-app.use(helmet());
-app.use(compression());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        imgSrc: [
+          "'self'",
+          "data:",
+          `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com`,
+        ],
+        scriptSrc: ["'self'"],
+      },
+    },
+  })
+);
 
-const logFormat = process.env.NODE_ENV === "production" ? "combined" : "dev";
-app.use(morgan(logFormat));
+app.use(compression());
+app.use(pino);
 
 const corsOptions = {
   origin: process.env.FRONTEND_URL,
@@ -44,6 +68,16 @@ app.use("/api/webhooks", webhookRoutes);
 app.use(express.json());
 app.use(cookieParser());
 
+app.get("/health", async (req, res) => {
+  try {
+    await pool.query("SELECT 1");
+    res.status(200).json({ status: "ok", database: "connected" });
+  } catch (err) {
+    req.log.error(err, "Health check failed");
+    res.status(503).json({ status: "error", database: "disconnected" });
+  }
+});
+
 app.use("/api", apiRoutes);
 
 app.get("/", (req, res) => {
@@ -55,7 +89,7 @@ app.use((req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error("Unhandled Error:", err.stack);
+  req.log.error(err);
   const statusCode = err.status || 500;
   const message =
     process.env.NODE_ENV === "production"

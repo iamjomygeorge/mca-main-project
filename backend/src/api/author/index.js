@@ -6,6 +6,7 @@ const {
   upload,
   uploadFileToS3,
   deleteFileFromS3,
+  cleanupLocalFile,
 } = require("../../services/storage.service");
 
 const { bookUploadRules } = require("./author.validator");
@@ -39,7 +40,7 @@ router.get("/overview", async (req, res, next) => {
 
     res.json(stats);
   } catch (error) {
-    console.error("Error fetching author overview stats:", error);
+    req.log.error(error, "Error fetching author overview stats");
     next(error);
   }
 });
@@ -69,7 +70,7 @@ router.get("/my-books", async (req, res, next) => {
     );
     res.json(booksResult.rows);
   } catch (err) {
-    console.error("Get Author's Books Error:", err.message);
+    req.log.error(err, "Get Author's Books Error");
     next(err);
   }
 });
@@ -83,11 +84,13 @@ router.post(
   bookUploadRules(),
   validate,
   async (req, res, next) => {
-
     const client = await pool.connect();
 
     let bookFileUrl = null;
     let coverImageUrl = null;
+
+    const bookFile = req.files?.["bookFile"]?.[0];
+    const coverImageFile = req.files?.["coverImageFile"]?.[0];
 
     try {
       const userId = req.user.userId;
@@ -102,10 +105,7 @@ router.post(
       }
 
       const authorId = authorResult.rows[0].id;
-
       const { title, description, price, currency } = req.body;
-      const bookFile = req.files?.["bookFile"]?.[0];
-      const coverImageFile = req.files?.["coverImageFile"]?.[0];
 
       if (!bookFile) {
         return res
@@ -121,13 +121,13 @@ router.post(
       const finalCurrency = currency || "INR";
 
       bookFileUrl = await uploadFileToS3(
-        bookFile.buffer,
+        bookFile.path,
         bookFile.originalname,
         bookFile.mimetype,
         "books/author"
       );
       coverImageUrl = await uploadFileToS3(
-        coverImageFile.buffer,
+        coverImageFile.path,
         coverImageFile.originalname,
         coverImageFile.mimetype,
         "covers/author"
@@ -157,16 +157,22 @@ router.post(
 
       await client.query("COMMIT");
 
+      req.log.info(
+        { bookId: newBook.id, authorId },
+        "Author uploaded new book"
+      );
       res.status(201).json(newBook);
     } catch (err) {
       await client.query("ROLLBACK");
-      console.error("Author Book Upload Error:", err.message, err.stack);
+      req.log.error(err, "Author Book Upload Error");
 
       if (bookFileUrl) await deleteFileFromS3(bookFileUrl);
       if (coverImageUrl) await deleteFileFromS3(coverImageUrl);
 
       next(err);
     } finally {
+      if (bookFile) await cleanupLocalFile(bookFile.path);
+      if (coverImageFile) await cleanupLocalFile(coverImageFile.path);
       client.release();
     }
   }
