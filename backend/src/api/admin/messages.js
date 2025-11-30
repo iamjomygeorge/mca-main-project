@@ -2,8 +2,8 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../../config/database");
 
-const { messageStatusRules } = require("./validator");
-const validate = require("../../middleware/validate");
+const { messageStatusRules } = require("./admin.validator");
+const validate = require("../../middleware/validation.middleware");
 
 router.get("/", async (req, res) => {
   try {

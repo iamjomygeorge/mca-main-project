@@ -4,10 +4,10 @@ const {
   upload,
   uploadFileToS3,
   deleteFileFromS3,
-} = require("../../services/fileUpload");
+} = require("../../services/storage.service");
 
-const { bookUploadRules } = require("./validator");
-const validate = require("../../middleware/validate");
+const { bookUploadRules } = require("./admin.validator");
+const validate = require("../../middleware/validation.middleware");
 
 const router = express.Router();
 

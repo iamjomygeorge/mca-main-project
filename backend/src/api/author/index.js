@@ -1,15 +1,15 @@
 const express = require("express");
 const pool = require("../../config/database");
-const authenticateToken = require("../../middleware/authenticateToken");
-const isAuthor = require("../../middleware/isAuthor");
+const authenticateToken = require("../../middleware/auth.middleware");
+const isAuthor = require("../../middleware/author.middleware");
 const {
   upload,
   uploadFileToS3,
   deleteFileFromS3,
-} = require("../../services/fileUpload");
+} = require("../../services/storage.service");
 
-const { bookUploadRules } = require("./validator");
-const validate = require("../../middleware/validate");
+const { bookUploadRules } = require("./author.validator");
+const validate = require("../../middleware/validation.middleware");
 
 const router = express.Router();
 

@@ -3,11 +3,11 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("../../config/database");
 const crypto = require("crypto");
-const { send2faEmail } = require("../../services/emailService");
+const { send2faEmail } = require("../../services/email.service");
 const { OAuth2Client } = require("google-auth-library");
 
-const { registrationRules, loginRules } = require("./validator");
-const validate = require("../../middleware/validate");
+const { registrationRules, loginRules } = require("./auth.validator");
+const validate = require("../../middleware/validation.middleware");
 
 const router = express.Router();
 

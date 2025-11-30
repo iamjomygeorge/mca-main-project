@@ -6,7 +6,7 @@ const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
 const pool = require("./src/config/database");
 
-const webhookRoutes = require("./src/api/webhooks");
+const webhookRoutes = require("./src/api/webhooks/stripe");
 const apiRoutes = require("./src/api");
 
 const app = express();

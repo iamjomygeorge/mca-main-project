@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
 
-const authenticateToken = require("../../middleware/authenticateToken");
-const isAdmin = require("../../middleware/isAdmin");
+const authenticateToken = require("../../middleware/auth.middleware");
+const isAdmin = require("../../middleware/admin.middleware");
 
 const statsRoutes = require("./stats");
 const bookRoutes = require("./books");
