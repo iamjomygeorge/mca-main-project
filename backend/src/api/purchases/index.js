@@ -123,7 +123,6 @@ router.post(
     } catch (err) {
       await client.query("ROLLBACK");
       console.error("Purchase Initiation Error:", err);
-
       if (err.type === "StripeCardError") {
         return res.status(400).json({ error: err.message });
       }

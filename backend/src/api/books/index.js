@@ -58,7 +58,7 @@ router.get("/featured", async (req, res, next) => {
   }
 });
 
-router.get("/:id/content", async (req, res) => {
+router.get("/:id/content", async (req, res, next) => {
   const { id: bookId } = req.params;
   const token = req.query.token;
   let userId = null;
@@ -102,7 +102,7 @@ router.get("/:id/content", async (req, res) => {
     if (err.name === "JsonWebTokenError") {
       return res.status(403).json({ error: "Invalid token." });
     }
-    res.status(500).json({ error: "Internal Server Error" });
+    next(err);
   }
 });
 

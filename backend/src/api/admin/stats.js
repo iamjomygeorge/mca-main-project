@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../../config/database");
 
-router.get("/overview", async (req, res) => {
+router.get("/overview", async (req, res, next) => {
   try {
     const [totalBooksResult, totalAuthorsResult, totalReadersResult] =
       await Promise.all([
@@ -20,7 +20,7 @@ router.get("/overview", async (req, res) => {
     res.json(stats);
   } catch (error) {
     console.error("Error fetching overview stats:", error);
-    res.status(500).json({ error: "Failed to retrieve overview statistics." });
+    next(error);
   }
 });
 

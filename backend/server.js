@@ -4,6 +4,7 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
+const compression = require("compression");
 const pool = require("./src/config/database");
 
 const webhookRoutes = require("./src/api/webhooks");
@@ -14,7 +15,10 @@ const app = express();
 app.set("trust proxy", 1);
 
 app.use(helmet());
-app.use(morgan("dev"));
+app.use(compression());
+
+const logFormat = process.env.NODE_ENV === "production" ? "combined" : "dev";
+app.use(morgan(logFormat));
 
 const corsOptions = {
   origin: process.env.FRONTEND_URL,
@@ -59,6 +63,19 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 8080;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Backend server is running on http://localhost:${PORT}`);
 });
+
+const shutdown = async () => {
+  console.log("SIGTERM/SIGINT received: closing HTTP server");
+  server.close(async () => {
+    console.log("HTTP server closed");
+    await pool.end();
+    console.log("Database pool closed");
+    process.exit(0);
+  });
+};
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);

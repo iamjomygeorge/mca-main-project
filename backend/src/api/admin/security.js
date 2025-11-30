@@ -12,44 +12,49 @@ const router = express.Router();
 const saltRounds = 10;
 const OTP_EXPIRY_MINUTES = 10;
 
-router.put("/password", passwordChangeRules(), validate, async (req, res) => {
-  try {
-    const { userId } = req.user;
-    const { currentPassword, newPassword } = req.body;
-    const userResult = await pool.query(
-      "SELECT password_hash FROM users WHERE id = $1 AND role = $2",
-      [userId, "ADMIN"]
-    );
-    if (userResult.rows.length === 0) {
-      console.warn(
-        `Admin user ${userId} not found during password update attempt.`
+router.put(
+  "/password",
+  passwordChangeRules(),
+  validate,
+  async (req, res, next) => {
+    try {
+      const { userId } = req.user;
+      const { currentPassword, newPassword } = req.body;
+      const userResult = await pool.query(
+        "SELECT password_hash FROM users WHERE id = $1 AND role = $2",
+        [userId, "ADMIN"]
       );
-      return res.status(404).json({ error: "Admin user not found." });
-    }
-    const user = userResult.rows[0];
-    const isPasswordValid = await bcrypt.compare(
-      currentPassword,
-      user.password_hash
-    );
-    if (!isPasswordValid) {
-      console.warn(
-        `Incorrect current password attempt for admin user ${userId}.`
+      if (userResult.rows.length === 0) {
+        console.warn(
+          `Admin user ${userId} not found during password update attempt.`
+        );
+        return res.status(404).json({ error: "Admin user not found." });
+      }
+      const user = userResult.rows[0];
+      const isPasswordValid = await bcrypt.compare(
+        currentPassword,
+        user.password_hash
       );
-      return res.status(401).json({ error: "Incorrect current password." });
+      if (!isPasswordValid) {
+        console.warn(
+          `Incorrect current password attempt for admin user ${userId}.`
+        );
+        return res.status(401).json({ error: "Incorrect current password." });
+      }
+      const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+      await pool.query("UPDATE users SET password_hash = $1 WHERE id = $2", [
+        newPasswordHash,
+        userId,
+      ]);
+      res.json({ message: "Password updated successfully." });
+    } catch (err) {
+      console.error("Admin Change Password Error:", err);
+      next(err);
     }
-    const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
-    await pool.query("UPDATE users SET password_hash = $1 WHERE id = $2", [
-      newPasswordHash,
-      userId,
-    ]);
-    res.json({ message: "Password updated successfully." });
-  } catch (err) {
-    console.error("Admin Change Password Error:", err);
-    res.status(500).json({ error: "Internal Server Error" });
   }
-});
+);
 
-router.post("/2fa/enable-request", async (req, res) => {
+router.post("/2fa/enable-request", async (req, res, next) => {
   const { userId } = req.user;
   try {
     const userResult = await pool.query(
@@ -79,13 +84,11 @@ router.post("/2fa/enable-request", async (req, res) => {
     res.json({ message: `A verification code has been sent to ${email}.` });
   } catch (err) {
     console.error("Admin 2FA Enable Request Error:", err);
-    res.status(500).json({
-      error: "Internal Server Error. Could not send verification email.",
-    });
+    next(err);
   }
 });
 
-router.post("/2fa/enable-verify", async (req, res) => {
+router.post("/2fa/enable-verify", async (req, res, next) => {
   const { userId } = req.user;
   const { token } = req.body;
 
@@ -134,13 +137,11 @@ router.post("/2fa/enable-verify", async (req, res) => {
     res.json({ message: "Two-Factor Authentication enabled successfully." });
   } catch (err) {
     console.error("Admin 2FA Verify Error:", err);
-    res
-      .status(500)
-      .json({ error: "Internal Server Error during 2FA verification." });
+    next(err);
   }
 });
 
-router.post("/2fa/disable", async (req, res) => {
+router.post("/2fa/disable", async (req, res, next) => {
   const { userId } = req.user;
   const { currentPassword } = req.body;
 
@@ -181,7 +182,7 @@ router.post("/2fa/disable", async (req, res) => {
     res.json({ message: "Two-Factor Authentication disabled successfully." });
   } catch (err) {
     console.error("Admin 2FA Disable Error:", err);
-    res.status(500).json({ error: "Internal Server Error." });
+    next(err);
   }
 });
 

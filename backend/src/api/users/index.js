@@ -4,7 +4,7 @@ const authenticateToken = require("../../middleware/auth.middleware");
 
 const router = express.Router();
 
-router.get("/me", authenticateToken, async (req, res) => {
+router.get("/me", authenticateToken, async (req, res, next) => {
   try {
     const userId = req.user.userId;
 
@@ -20,7 +20,7 @@ router.get("/me", authenticateToken, async (req, res) => {
     res.json(userProfile.rows[0]);
   } catch (err) {
     console.error("Get Profile Error:", err.message);
-    res.status(500).json({ error: "Internal Server Error" });
+    next(err);
   }
 });
 

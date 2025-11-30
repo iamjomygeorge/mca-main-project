@@ -292,7 +292,7 @@ router.get("/google", (req, res) => {
   res.redirect(url);
 });
 
-router.get("/google/callback", async (req, res, next) => {
+router.get("/google/callback", async (req, res) => {
   const { code, state, error } = req.query;
   const storedState = req.cookies?.oauth_state;
 
