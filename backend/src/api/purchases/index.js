@@ -3,7 +3,7 @@ const pool = require("../../config/database");
 const authenticateToken = require("../../middleware/auth.middleware");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
-const { purchaseInitiateRules } = require("./validator");
+const { purchaseInitiateRules } = require("./purchases.validator");
 const validate = require("../../middleware/validation.middleware");
 
 const router = express.Router();

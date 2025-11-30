@@ -1,7 +1,7 @@
 const express = require("express");
 const pool = require("../../config/database");
 
-const { contactRules } = require("./validator");
+const { contactRules } = require("./contact.validator");
 const validate = require("../../middleware/validation.middleware");
 
 const router = express.Router();
