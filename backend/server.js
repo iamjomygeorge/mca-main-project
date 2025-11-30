@@ -79,7 +79,8 @@ app.use((req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
-  req.log.error(err);
+  req.log.error(err, "Unhandled API Error");
+
   const statusCode = err.status || 500;
   const message =
     process.env.NODE_ENV === "production"
