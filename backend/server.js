@@ -5,8 +5,11 @@ const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
 const compression = require("compression");
-const pool = require("./src/config/database");
 
+const validateEnvironment = require("./src/config/env.validation");
+validateEnvironment();
+
+const pool = require("./src/config/database");
 const webhookRoutes = require("./src/api/webhooks");
 const apiRoutes = require("./src/api");
 

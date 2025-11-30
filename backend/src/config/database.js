@@ -1,9 +1,5 @@
 const { Pool } = require("pg");
 
-if (process.env.NODE_ENV !== "production") {
-  require("dotenv").config();
-}
-
 const rejectUnauthorized = process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false";
 
 const connectionConfig = {

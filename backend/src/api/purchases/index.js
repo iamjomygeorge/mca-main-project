@@ -11,7 +11,7 @@ const router = express.Router();
 router.use(authenticateToken);
 
 const PLATFORM_COMMISSION_RATE = parseFloat(
-  process.env.PLATFORM_COMMISSION_RATE || "0.15"
+  process.env.PLATFORM_COMMISSION_RATE
 );
 
 router.post(
