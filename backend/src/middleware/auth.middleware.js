@@ -20,6 +20,16 @@ function authenticateToken(req, res, next) {
         .json({ error: "Forbidden: Invalid or expired token." });
     }
 
+    if (user.scope === "2fa_login") {
+      req.log.warn(
+        { userId: user.userId },
+        "Access denied: 2FA temp token attempted to access protected route."
+      );
+      return res.status(403).json({
+        error: "Forbidden: Complete 2FA verification to access this resource.",
+      });
+    }
+
     req.user = user;
     next();
   });

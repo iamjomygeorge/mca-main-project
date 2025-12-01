@@ -2,10 +2,10 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
-const rateLimit = require("express-rate-limit");
 const compression = require("compression");
 const logger = require("./src/config/logger");
 const pinoHttp = require("pino-http")({ logger });
+const { globalLimiter } = require("./src/config/rate-limit");
 
 const validateEnvironment = require("./src/config/env.validation");
 validateEnvironment();
@@ -44,14 +44,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many requests, please try again later." },
-});
-app.use(limiter);
+app.use(globalLimiter);
 
 app.use("/api/webhooks", webhookRoutes);
 
