@@ -10,8 +10,38 @@ const inter = Inter({ subsets: ["latin"] });
 validateEnv();
 
 export const metadata = {
-  title: "Inkling",
-  description: "A blockchain-based digital publishing and reading platform",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  ),
+  title: {
+    template: "%s | Inkling",
+    default: "Inkling - The Standard for Digital Literary Assets",
+  },
+  description:
+    "A blockchain-based platform for authors to secure their work and a digital library where readers can own and read verifiable literary works.",
+  keywords: ["books", "blockchain", "reading", "digital assets", "publishing"],
+  authors: [{ name: "Inkling Team" }],
+  openGraph: {
+    title: "Inkling",
+    description: "The Standard for Digital Literary Assets",
+    url: "/",
+    siteName: "Inkling",
+    images: [
+      {
+        url: "/logo.png",
+        width: 800,
+        height: 600,
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Inkling",
+    description: "The Standard for Digital Literary Assets",
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({ children }) {
