@@ -1,4 +1,7 @@
-const requiredEnvs = ["NEXT_PUBLIC_API_URL"];
+const requiredEnvs = [
+  "NEXT_PUBLIC_API_URL",
+  "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+];
 
 export function validateEnv() {
   if (process.env.NODE_ENV === "test") return;
