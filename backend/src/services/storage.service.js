@@ -67,57 +67,40 @@ async function uploadFileToS3(filePath, originalname, mimetype, folderName) {
 
   await s3Client.send(command);
 
-  const fileUrl = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
-  return fileUrl;
+  return s3Key;
 }
 
-async function deleteFileFromS3(fileUrl) {
-  if (!fileUrl) return;
+async function deleteFileFromS3(fileKey) {
+  if (!fileKey) return;
 
   try {
     const bucketName = process.env.AWS_S3_BUCKET_NAME;
-    const region = process.env.AWS_REGION;
-    const baseUrl = `https://${bucketName}.s3.${region}.amazonaws.com/`;
-
-    if (!fileUrl.startsWith(baseUrl)) {
-      logger.warn(
-        { fileUrl },
-        "Skipping S3 delete: URL does not match expected bucket pattern."
-      );
-      return;
-    }
-
-    const key = fileUrl.replace(baseUrl, "");
 
     const command = new DeleteObjectCommand({
       Bucket: bucketName,
-      Key: key,
+      Key: fileKey,
     });
 
     await s3Client.send(command);
-    logger.info({ key }, "Successfully rolled back (deleted) S3 file.");
+    logger.info({ fileKey }, "Successfully rolled back (deleted) S3 file.");
   } catch (err) {
     logger.error(
       err,
-      `Failed to delete file from S3 during rollback: ${fileUrl}`
+      `Failed to delete file from S3 during rollback: ${fileKey}`
     );
   }
 }
 
-async function getFileStream(fileUrl) {
+async function getFileStream(fileKey) {
   const bucketName = process.env.AWS_S3_BUCKET_NAME;
-  const region = process.env.AWS_REGION;
-  const baseUrl = `https://${bucketName}.s3.${region}.amazonaws.com/`;
 
-  if (!fileUrl || !fileUrl.startsWith(baseUrl)) {
-    throw new Error("Invalid file URL configuration.");
+  if (!fileKey) {
+    throw new Error("Invalid file key configuration.");
   }
-
-  const key = fileUrl.replace(baseUrl, "");
 
   const command = new GetObjectCommand({
     Bucket: bucketName,
-    Key: key,
+    Key: fileKey,
   });
 
   const response = await s3Client.send(command);

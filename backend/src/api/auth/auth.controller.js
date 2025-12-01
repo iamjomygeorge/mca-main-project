@@ -29,17 +29,20 @@ exports.register = async (req, res, next) => {
     const { fullName, email, password, username, role } = req.body;
 
     const userRole = role === "AUTHOR" ? "AUTHOR" : "READER";
-    if (userRole === "AUTHOR" && !password) {
-      await client.query("ROLLBACK");
-      return res
-        .status(400)
-        .json({ error: "Password is required for author registration." });
-    }
-    if (userRole === "AUTHOR" && !username) {
-      await client.query("ROLLBACK");
-      return res
-        .status(400)
-        .json({ error: "Username is required for author registration." });
+
+    if (userRole === "AUTHOR") {
+      if (!password) {
+        await client.query("ROLLBACK");
+        return res
+          .status(400)
+          .json({ error: "Password is required for author registration." });
+      }
+      if (!username) {
+        await client.query("ROLLBACK");
+        return res
+          .status(400)
+          .json({ error: "Username is required for author registration." });
+      }
     }
 
     const passwordHash = password
@@ -57,6 +60,7 @@ exports.register = async (req, res, next) => {
         await client.query("ROLLBACK");
         throw new Error("Internal error: Author username missing.");
       }
+
       await client.query(
         "INSERT INTO authors (name, user_id) VALUES ($1, $2)",
         [newUser.username, newUser.id]
@@ -370,8 +374,12 @@ exports.googleCallback = async (req, res) => {
       user = userResult.rows[0];
 
       if (user) {
-        if (user.role === "AUTHOR")
-          throw new Error("Authors cannot use Google Auth");
+        if (user.role === "AUTHOR") {
+          await client.query("ROLLBACK");
+          return res.redirect(
+            `${process.env.FRONTEND_URL}/login?error=author_google_signin_prohibited`
+          );
+        }
         await client.query(
           "UPDATE users SET google_id = $1, auth_method = 'google' WHERE id = $2",
           [googleId, user.id]
@@ -389,7 +397,10 @@ exports.googleCallback = async (req, res) => {
     }
 
     if (user.role !== "READER") {
-      throw new Error("Invalid role for Google Sign-In");
+      await client.query("ROLLBACK");
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/login?error=invalid_role_google`
+      );
     }
 
     const { accessToken, refreshToken } = generateTokens(user);

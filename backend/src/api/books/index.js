@@ -3,8 +3,24 @@ const pool = require("../../config/database");
 const optionalAuthenticateToken = require("../../middleware/optional-auth.middleware");
 const { getFileStream } = require("../../services/storage.service");
 const jwt = require("jsonwebtoken");
+const { bookIdRules } = require("./books.validator");
+const validate = require("../../middleware/validation.middleware");
 
 const router = express.Router();
+
+const generateProxyUrls = (book, req) => {
+  const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+  const host = req.headers["x-forwarded-host"] || req.get("host");
+  const baseUrl = `${protocol}://${host}`;
+
+  return {
+    ...book,
+    cover_image_url: book.cover_image_url
+      ? `${baseUrl}/api/books/${book.id}/cover`
+      : null,
+    book_file_url: null,
+  };
+};
 
 router.get("/", async (req, res, next) => {
   try {
@@ -28,7 +44,10 @@ router.get("/", async (req, res, next) => {
       [limit, offset]
     );
 
-    res.json(allBooks.rows);
+    const transformedBooks = allBooks.rows.map((book) =>
+      generateProxyUrls(book, req)
+    );
+    res.json(transformedBooks);
   } catch (err) {
     req.log.error(err, "Get All Books Error");
     next(err);
@@ -51,14 +70,46 @@ router.get("/featured", async (req, res, next) => {
              ORDER BY b.created_at DESC
              LIMIT 10`
     );
-    res.json(featuredBooks.rows);
+
+    const transformedBooks = featuredBooks.rows.map((book) =>
+      generateProxyUrls(book, req)
+    );
+    res.json(transformedBooks);
   } catch (err) {
     req.log.error(err, "Get Featured Books Error");
     next(err);
   }
 });
 
-router.get("/:id/content", async (req, res, next) => {
+router.get("/:id/cover", bookIdRules(), validate, async (req, res, next) => {
+  const { id: bookId } = req.params;
+  try {
+    const bookResult = await pool.query(
+      "SELECT cover_image_url FROM books WHERE id = $1",
+      [bookId]
+    );
+
+    if (bookResult.rows.length === 0 || !bookResult.rows[0].cover_image_url) {
+      return res.status(404).json({ error: "Cover not found." });
+    }
+
+    const s3Key = bookResult.rows[0].cover_image_url;
+
+    let contentType = "image/jpeg";
+    if (s3Key.endsWith(".png")) contentType = "image/png";
+    if (s3Key.endsWith(".webp")) contentType = "image/webp";
+
+    const fileStream = await getFileStream(s3Key);
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    fileStream.pipe(res);
+  } catch (err) {
+    req.log.error(err, "Cover Image Stream Error");
+    next(err);
+  }
+});
+
+router.get("/:id/content", bookIdRules(), validate, async (req, res, next) => {
   const { id: bookId } = req.params;
   const token = req.query.token;
   let userId = null;
@@ -79,8 +130,12 @@ router.get("/:id/content", async (req, res, next) => {
     if (!isFree) {
       if (!token) return res.status(401).json({ error: "Unauthorized." });
 
-      const user = jwt.verify(token, process.env.JWT_SECRET);
-      userId = user.userId;
+      try {
+        const user = jwt.verify(token, process.env.JWT_SECRET);
+        userId = user.userId;
+      } catch (err) {
+        return res.status(403).json({ error: "Invalid token." });
+      }
 
       const ownershipCheck = await pool.query(
         "SELECT 1 FROM user_library WHERE user_id = $1 AND book_id = $2",
@@ -99,72 +154,75 @@ router.get("/:id/content", async (req, res, next) => {
     fileStream.pipe(res);
   } catch (err) {
     req.log.error(err, "Secure Content Stream Error");
-    if (err.name === "JsonWebTokenError") {
-      return res.status(403).json({ error: "Invalid token." });
-    }
     next(err);
   }
 });
 
-router.get("/:id", optionalAuthenticateToken, async (req, res, next) => {
-  try {
-    const { id: bookId } = req.params;
-    const userId = req.user ? req.user.userId : null;
+router.get(
+  "/:id",
+  optionalAuthenticateToken,
+  bookIdRules(),
+  validate,
+  async (req, res, next) => {
+    try {
+      const { id: bookId } = req.params;
+      const userId = req.user ? req.user.userId : null;
 
-    const uuidRegex =
-      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-    if (!uuidRegex.test(bookId)) {
-      return res.status(400).json({ error: "Invalid Book ID format." });
-    }
-
-    const bookResult = await pool.query(
-      `SELECT
+      const bookResult = await pool.query(
+        `SELECT
          b.*,
          a.name AS author_name
        FROM books b
        JOIN authors a ON b.author_id = a.id
        WHERE b.id = $1`,
-      [bookId]
-    );
-
-    if (bookResult.rows.length === 0) {
-      return res.status(404).json({ error: "Book not found." });
-    }
-
-    const bookData = bookResult.rows[0];
-    let isOwned = false;
-
-    if (userId) {
-      const ownershipCheck = await pool.query(
-        "SELECT 1 FROM user_library WHERE user_id = $1 AND book_id = $2",
-        [userId, bookId]
+        [bookId]
       );
-      if (ownershipCheck.rows.length > 0) {
-        isOwned = true;
+
+      if (bookResult.rows.length === 0) {
+        return res.status(404).json({ error: "Book not found." });
       }
-    }
 
-    const isFree = parseFloat(bookData.price) <= 0;
+      const bookData = bookResult.rows[0];
+      let isOwned = false;
 
-    if (isOwned || isFree) {
-      const token = req.headers["authorization"]
-        ? req.headers["authorization"].split(" ")[1]
-        : "";
+      if (userId) {
+        const ownershipCheck = await pool.query(
+          "SELECT 1 FROM user_library WHERE user_id = $1 AND book_id = $2",
+          [userId, bookId]
+        );
+        if (ownershipCheck.rows.length > 0) {
+          isOwned = true;
+        }
+      }
+
+      const isFree = parseFloat(bookData.price) <= 0;
+
       const protocol = req.headers["x-forwarded-proto"] || req.protocol;
       const host = req.headers["x-forwarded-host"] || req.get("host");
+      const baseUrl = `${protocol}://${host}`;
 
-      bookData.book_file_url = `${protocol}://${host}/api/books/${bookId}/content?token=${token}`;
-    } else {
-      delete bookData.book_file_url;
+      if (bookData.cover_image_url) {
+        bookData.cover_image_url = `${baseUrl}/api/books/${bookId}/cover`;
+      }
+
+      if (isOwned || isFree) {
+        const token = req.headers["authorization"]
+          ? req.headers["authorization"].split(" ")[1]
+          : "";
+
+        bookData.book_file_url = `${baseUrl}/api/books/${bookId}/content?token=${token}`;
+      } else {
+        delete bookData.book_file_url;
+      }
+
+      const responseData = { ...bookData, isOwned };
+
+      res.json(responseData);
+    } catch (err) {
+      req.log.error(err, "Get Single Book Error");
+      next(err);
     }
-
-    const responseData = { ...bookData, isOwned };
-
-    res.json(responseData);
-  } catch (err) {
-    req.log.error(err, "Get Single Book Error");
-    next(err);
   }
-});
+);
 
 module.exports = router;

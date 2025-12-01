@@ -3,9 +3,15 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'mca-main-project.s3.ap-south-1.amazonaws.com',
+        hostname: 'api.inkling.jomygeorge.net',
         port: '',
-        pathname: '/**',
+        pathname: '/api/**', 
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8080',
+        pathname: '/api/**',
       },
     ],
   },

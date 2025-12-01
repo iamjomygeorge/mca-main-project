@@ -23,8 +23,8 @@ router.post(
   async (req, res, next) => {
     const client = await pool.connect();
 
-    let bookFileUrl = null;
-    let coverImageUrl = null;
+    let bookFileKey = null;
+    let coverImageKey = null;
 
     const bookFile = req.files["bookFile"] ? req.files["bookFile"][0] : null;
     const coverImageFile = req.files["coverImageFile"]
@@ -48,18 +48,27 @@ router.post(
       let authorId = existingAuthorId;
 
       if (newAuthorName) {
-        const newAuthorResult = await client.query(
-          "INSERT INTO authors (name) VALUES ($1) RETURNING id",
-          [newAuthorName]
+        const existingAuthorResult = await client.query(
+          "SELECT id FROM authors WHERE LOWER(name) = LOWER($1)",
+          [newAuthorName.trim()]
         );
-        authorId = newAuthorResult.rows[0].id;
+
+        if (existingAuthorResult.rows.length > 0) {
+          authorId = existingAuthorResult.rows[0].id;
+        } else {
+          const newAuthorResult = await client.query(
+            "INSERT INTO authors (name) VALUES ($1) RETURNING id",
+            [newAuthorName.trim()]
+          );
+          authorId = newAuthorResult.rows[0].id;
+        }
       }
 
       if (!authorId) {
         throw new Error("Could not determine author ID.");
       }
 
-      bookFileUrl = await uploadFileToS3(
+      bookFileKey = await uploadFileToS3(
         bookFile.path,
         bookFile.originalname,
         bookFile.mimetype,
@@ -67,7 +76,7 @@ router.post(
       );
 
       if (coverImageFile) {
-        coverImageUrl = await uploadFileToS3(
+        coverImageKey = await uploadFileToS3(
           coverImageFile.path,
           coverImageFile.originalname,
           coverImageFile.mimetype,
@@ -77,7 +86,7 @@ router.post(
 
       const newBookResult = await client.query(
         "INSERT INTO books (title, description, author_id, book_file_url, cover_image_url) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-        [title, description, authorId, bookFileUrl, coverImageUrl]
+        [title, description, authorId, bookFileKey, coverImageKey]
       );
 
       await client.query("COMMIT");
@@ -91,8 +100,8 @@ router.post(
       await client.query("ROLLBACK");
       req.log.error(err, "Admin Book Upload Error");
 
-      if (bookFileUrl) await deleteFileFromS3(bookFileUrl);
-      if (coverImageUrl) await deleteFileFromS3(coverImageUrl);
+      if (bookFileKey) await deleteFileFromS3(bookFileKey);
+      if (coverImageKey) await deleteFileFromS3(coverImageKey);
 
       next(err);
     } finally {

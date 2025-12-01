@@ -16,6 +16,19 @@ const router = express.Router();
 
 router.use(authenticateToken, isAuthor);
 
+const transformBooks = (books, req) => {
+  const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+  const host = req.headers["x-forwarded-host"] || req.get("host");
+  const baseUrl = `${protocol}://${host}`;
+
+  return books.map((book) => ({
+    ...book,
+    cover_image_url: book.cover_image_url
+      ? `${baseUrl}/api/books/${book.id}/cover`
+      : null,
+  }));
+};
+
 router.get("/overview", async (req, res, next) => {
   try {
     const authorResult = await pool.query(
@@ -68,7 +81,8 @@ router.get("/my-books", async (req, res, next) => {
        ORDER BY b.created_at DESC`,
       [authorId]
     );
-    res.json(booksResult.rows);
+
+    res.json(transformBooks(booksResult.rows, req));
   } catch (err) {
     req.log.error(err, "Get Author's Books Error");
     next(err);
@@ -86,8 +100,8 @@ router.post(
   async (req, res, next) => {
     const client = await pool.connect();
 
-    let bookFileUrl = null;
-    let coverImageUrl = null;
+    let bookFileKey = null;
+    let coverImageKey = null;
 
     const bookFile = req.files?.["bookFile"]?.[0];
     const coverImageFile = req.files?.["coverImageFile"]?.[0];
@@ -120,13 +134,13 @@ router.post(
 
       const finalCurrency = currency || "INR";
 
-      bookFileUrl = await uploadFileToS3(
+      bookFileKey = await uploadFileToS3(
         bookFile.path,
         bookFile.originalname,
         bookFile.mimetype,
         "books/author"
       );
-      coverImageUrl = await uploadFileToS3(
+      coverImageKey = await uploadFileToS3(
         coverImageFile.path,
         coverImageFile.originalname,
         coverImageFile.mimetype,
@@ -142,8 +156,8 @@ router.post(
           authorId,
           title,
           description || null,
-          bookFileUrl,
-          coverImageUrl,
+          bookFileKey,
+          coverImageKey,
           parseFloat(price).toFixed(2),
           finalCurrency,
         ]
@@ -166,8 +180,8 @@ router.post(
       await client.query("ROLLBACK");
       req.log.error(err, "Author Book Upload Error");
 
-      if (bookFileUrl) await deleteFileFromS3(bookFileUrl);
-      if (coverImageUrl) await deleteFileFromS3(coverImageUrl);
+      if (bookFileKey) await deleteFileFromS3(bookFileKey);
+      if (coverImageKey) await deleteFileFromS3(coverImageKey);
 
       next(err);
     } finally {
