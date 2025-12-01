@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
+import { api } from "@/services/api.service";
 
-const Enable2FA = ({ token, onStatusChange, router }) => {
+const Enable2FA = ({ token, onStatusChange }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -18,25 +19,11 @@ const Enable2FA = ({ token, onStatusChange, router }) => {
     setError(null);
     setSuccess(null);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/2fa/enable-request`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const data = await api.post(
+        "/api/admin/2fa/enable-request",
+        {},
+        { token }
       );
-
-      if (response.status === 401 || response.status === 403) {
-        router.push("/login?redirect=/admin/account");
-        return;
-      }
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to send code.");
-
       setSuccess(data.message || "Verification code sent to your email.");
       setVerificationSent(true);
     } catch (err) {
@@ -52,26 +39,11 @@ const Enable2FA = ({ token, onStatusChange, router }) => {
     setError(null);
     setSuccess(null);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/2fa/enable-verify`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ token: otpCode }),
-        }
+      const data = await api.post(
+        "/api/admin/2fa/enable-verify",
+        { token: otpCode },
+        { token }
       );
-
-      if (response.status === 401 || response.status === 403) {
-        router.push("/login?redirect=/admin/account");
-        return;
-      }
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to verify code.");
-
       setSuccess(data.message || "2FA enabled successfully!");
       setVerificationSent(false);
       setOtpCode("");
@@ -177,7 +149,7 @@ const Enable2FA = ({ token, onStatusChange, router }) => {
   );
 };
 
-const Disable2FA = ({ token, onStatusChange, router }) => {
+const Disable2FA = ({ token, onStatusChange }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -200,26 +172,11 @@ const Disable2FA = ({ token, onStatusChange, router }) => {
     setError(null);
     setSuccess(null);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/2fa/disable`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ currentPassword }),
-        }
+      const data = await api.post(
+        "/api/admin/2fa/disable",
+        { currentPassword },
+        { token }
       );
-
-      if (response.status === 401 || response.status === 403) {
-        router.push("/login?redirect=/admin/account");
-        return;
-      }
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to disable 2FA.");
-
       setSuccess(data.message || "2FA disabled successfully.");
       setShowPasswordInput(false);
       setCurrentPassword("");
@@ -361,17 +318,9 @@ const TwoFactorAuthSection = () => {
         Two-Factor Authentication
       </h2>
       {is2faCurrentlyEnabled ? (
-        <Disable2FA
-          token={token}
-          onStatusChange={handleStatusChange}
-          router={router}
-        />
+        <Disable2FA token={token} onStatusChange={handleStatusChange} />
       ) : (
-        <Enable2FA
-          token={token}
-          onStatusChange={handleStatusChange}
-          router={router}
-        />
+        <Enable2FA token={token} onStatusChange={handleStatusChange} />
       )}
     </div>
   );

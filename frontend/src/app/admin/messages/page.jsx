@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 import Skeleton from "@/components/Skeleton";
+import { api } from "@/services/api.service";
 
 const formatTimestamp = (isoDate) => {
   try {
@@ -17,7 +18,7 @@ const formatTimestamp = (isoDate) => {
   }
 };
 
-function MessageItem({ message, token, onUpdate, onDelete, router }) {
+function MessageItem({ message, token, onUpdate, onDelete }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -52,25 +53,11 @@ function MessageItem({ message, token, onUpdate, onDelete, router }) {
     if (isUpdating || message.status === status) return;
     setIsUpdating(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/messages/${message.id}/status`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ status: status }),
-        }
+      const updatedMessage = await api.put(
+        `/api/admin/messages/${message.id}/status`,
+        { status },
+        { token }
       );
-
-      if (response.status === 401 || response.status === 403) {
-        router.push("/login?redirect=/admin/messages");
-        return;
-      }
-
-      if (!response.ok) throw new Error("Failed to update status");
-      const updatedMessage = await response.json();
       onUpdate(updatedMessage);
     } catch (err) {
       console.error(err);
@@ -90,20 +77,7 @@ function MessageItem({ message, token, onUpdate, onDelete, router }) {
     }
     setIsDeleting(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/messages/${message.id}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.status === 401 || response.status === 403) {
-        router.push("/login?redirect=/admin/messages");
-        return;
-      }
-
-      if (!response.ok) throw new Error("Failed to delete message");
+      await api.delete(`/api/admin/messages/${message.id}`, { token });
       onDelete(message.id);
     } catch (err) {
       console.error(err);
@@ -205,32 +179,11 @@ export default function AdminMessagesPage() {
   const [error, setError] = useState(null);
 
   const fetchMessages = useCallback(async () => {
-    if (!token) {
-      // Layout handles redirect, but safe fallback
-      return;
-    }
+    if (!token) return;
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/messages`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.status === 401 || response.status === 403) {
-        router.push("/login?redirect=/admin/messages");
-        return;
-      }
-
-      if (!response.ok) {
-        const errData = await response
-          .json()
-          .catch(() => ({ error: "Failed to load messages." }));
-        throw new Error(errData.error || "Failed to fetch messages");
-      }
-      const data = await response.json();
+      const data = await api.get("/api/admin/messages", { token });
       setMessages(data);
     } catch (err) {
       setError(err.message);
@@ -238,7 +191,7 @@ export default function AdminMessagesPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, router]);
+  }, [token]);
 
   useEffect(() => {
     if (token) {

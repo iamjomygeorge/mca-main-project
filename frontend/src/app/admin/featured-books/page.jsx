@@ -7,6 +7,7 @@ import { Icons } from "@/components/Icons";
 import Container from "@/components/Container";
 import BookCard from "@/components/BookCard";
 import Skeleton from "@/components/Skeleton";
+import { api } from "@/services/api.service";
 
 export default function FeaturedBooksPage() {
   const { token, loading: authLoading } = useAuth();
@@ -19,26 +20,7 @@ export default function FeaturedBooksPage() {
     if (!token) return;
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/books`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.status === 401 || response.status === 403) {
-        router.push("/login?redirect=/admin/featured-books");
-        return;
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch books.");
-      }
-
-      const data = await response.json();
+      const data = await api.get("/api/books", { token });
       setBooks(data);
       setError(null);
     } catch (err) {
@@ -46,7 +28,7 @@ export default function FeaturedBooksPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, router]);
+  }, [token]);
 
   useEffect(() => {
     if (token) {
@@ -56,29 +38,11 @@ export default function FeaturedBooksPage() {
 
   const toggleFeatured = async (book) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/books/${book.id}/feature`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ feature: !book.featured }),
-        }
+      const updatedBook = await api.put(
+        `/api/admin/books/${book.id}/feature`,
+        { feature: !book.featured },
+        { token }
       );
-
-      if (response.status === 401 || response.status === 403) {
-        router.push("/login?redirect=/admin/featured-books");
-        return;
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update book.");
-      }
-
-      const updatedBook = await response.json();
 
       setBooks(
         books.map((b) =>

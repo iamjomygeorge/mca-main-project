@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
+import { api } from "@/services/api.service";
 
 export default function ChangePasswordForm() {
   const { token } = useAuth();
@@ -39,53 +40,13 @@ export default function ChangePasswordForm() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/password`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            currentPassword,
-            newPassword,
-          }),
-        }
+      const responseData = await api.put(
+        "/api/admin/password",
+        { currentPassword, newPassword },
+        { token }
       );
 
-      if (response.status === 401 || response.status === 403) {
-        router.push("/login?redirect=/admin/account");
-        return;
-      }
-
-      if (!response.ok) {
-        let errorMsg = "Failed to update password. Please try again.";
-        try {
-          const errorData = await response.json();
-          if (errorData && errorData.error) {
-            errorMsg = errorData.error;
-          } else if (
-            errorData &&
-            errorData.errors &&
-            Array.isArray(errorData.errors) &&
-            errorData.errors.length > 0
-          ) {
-            const firstError = errorData.errors[0];
-            errorMsg = Object.values(firstError)[0] || errorMsg;
-          }
-        } catch (jsonError) {}
-        throw new Error(errorMsg);
-      }
-
-      let responseData;
-      try {
-        responseData = await response.json();
-        setSuccess(responseData.message || "Password updated successfully!");
-      } catch (jsonError) {
-        setSuccess("Password updated successfully!");
-      }
-
+      setSuccess(responseData.message || "Password updated successfully!");
       clearForm();
     } catch (err) {
       setError(

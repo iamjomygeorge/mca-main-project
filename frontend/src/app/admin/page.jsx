@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 import Skeleton from "@/components/Skeleton";
+import { api } from "@/services/api.service";
 
 const StatCard = ({ title, value, icon: Icon, loading }) => (
   <div className="flex flex-col bg-white dark:bg-zinc-900/50 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800">
@@ -25,7 +26,7 @@ const StatCard = ({ title, value, icon: Icon, loading }) => (
 );
 
 export default function AdminDashboardPage() {
-  const { token, loading: authLoading } = useAuth();
+  const { token } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -33,37 +34,14 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState(null);
 
   const fetchStats = useCallback(async () => {
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     if (!isInitialLoading) {
       setIsRefreshing(true);
     }
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/stats/overview`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.status === 401 || response.status === 403) {
-        router.push("/login?redirect=/admin");
-        return;
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || "Failed to fetch dashboard statistics."
-        );
-      }
-
-      const data = await response.json();
+      const data = await api.get("/api/admin/stats/overview", { token });
       setStats(data);
       setError(null);
     } catch (err) {
@@ -74,7 +52,7 @@ export default function AdminDashboardPage() {
       }
       setIsRefreshing(false);
     }
-  }, [token, isInitialLoading, router]);
+  }, [token, isInitialLoading]);
 
   useEffect(() => {
     if (token) {

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
+import { api } from "@/services/api.service";
 
 const FileInput = ({
   label,
@@ -130,27 +131,14 @@ export default function AdminUploadForm() {
     if (!token) return;
     const fetchAuthors = async () => {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/admin/authors`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        if (response.status === 401 || response.status === 403) {
-          router.push("/login?redirect=/admin/books/upload");
-          return;
-        }
-
-        if (!response.ok) throw new Error("Failed to fetch authors");
-        const data = await response.json();
+        const data = await api.get("/api/admin/authors", { token });
         setAuthors(data);
       } catch (err) {
         setError("Could not load author list: " + err.message);
       }
     };
     fetchAuthors();
-  }, [token, success, router]);
+  }, [token]);
 
   const coverImagePreviewUrl = coverImageFile
     ? URL.createObjectURL(coverImageFile)
@@ -210,25 +198,9 @@ export default function AdminUploadForm() {
     }
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/books`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        }
-      );
-
-      if (response.status === 401 || response.status === 403) {
-        router.push("/login?redirect=/admin/books/upload");
-        return;
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to upload book");
-      }
-      const uploadedBook = await response.json();
+      const uploadedBook = await api.post("/api/admin/books", formData, {
+        token,
+      });
       setSuccess(`Book "${uploadedBook.title}" uploaded successfully.`);
       clearForm();
     } catch (err) {
