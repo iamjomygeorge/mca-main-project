@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import ePub from "epubjs";
 import { Icons } from "@/components/Icons";
+import logger from "@/utils/logger";
 
 export default function EpubReader({ url }) {
   const viewerRef = useRef(null);
@@ -59,7 +60,7 @@ export default function EpubReader({ url }) {
           setIsLoading(false);
         }
       } catch (err) {
-        console.error("Error loading EPUB:", err);
+        logger.error("Error loading EPUB:", err);
         if (mounted) {
           setError("Failed to load the book. Please try again.");
           setIsLoading(false);
