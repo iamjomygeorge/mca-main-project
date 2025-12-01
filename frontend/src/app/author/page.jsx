@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 import Skeleton from "@/components/Skeleton";
+import { api } from "@/services/api.service";
 
 const StatCard = ({ title, value, icon: Icon, loading }) => (
   <div className="flex flex-col bg-white dark:bg-zinc-900/50 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800">
@@ -35,23 +36,7 @@ export default function AuthorDashboardPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/author/overview`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.status === 401 || response.status === 403) {
-        router.push("/login?redirect=/author");
-        return;
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch stats.");
-      }
-      const data = await response.json();
+      const data = await api.get("/api/author/overview", { token });
       setStats(data);
       setError(null);
     } catch (err) {
@@ -60,7 +45,7 @@ export default function AuthorDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, router]);
+  }, [token]);
 
   useEffect(() => {
     if (token) {

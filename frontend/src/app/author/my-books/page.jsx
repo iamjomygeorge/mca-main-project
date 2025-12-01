@@ -7,6 +7,7 @@ import BookCard from "@/components/BookCard";
 import { Icons } from "@/components/Icons";
 import Link from "next/link";
 import Skeleton from "@/components/Skeleton";
+import { api } from "@/services/api.service";
 
 export default function MyBooksPage() {
   const { token, loading: authLoading } = useAuth();
@@ -22,30 +23,14 @@ export default function MyBooksPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/author/my-books`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.status === 401 || response.status === 403) {
-        router.push("/login?redirect=/author/my-books");
-        return;
-      }
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || "Failed to fetch your books");
-      }
-      const data = await response.json();
+      const data = await api.get("/api/author/my-books", { token });
       setBooks(data);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [token, router]);
+  }, [token]);
 
   useEffect(() => {
     if (token) {
@@ -62,27 +47,7 @@ export default function MyBooksPage() {
     setIsDeleting(true);
     setError(null);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/author/books/${deleteConfirmation.id}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.status === 401 || response.status === 403) {
-        router.push("/login?redirect=/author/my-books");
-        return;
-      }
-
-      if (!response.ok) {
-        let errorMsg = "Failed to delete book.";
-        try {
-          const errData = await response.json();
-          errorMsg = errData.error || errorMsg;
-        } catch (e) {}
-        throw new Error(errorMsg);
-      }
+      await api.delete(`/api/author/books/${deleteConfirmation.id}`, { token });
 
       setBooks((prevBooks) =>
         prevBooks.filter((book) => book.id !== deleteConfirmation.id)

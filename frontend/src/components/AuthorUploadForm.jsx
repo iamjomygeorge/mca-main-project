@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
+import { api } from "@/services/api.service";
 
 const FileInput = ({
   label,
@@ -81,7 +82,7 @@ const FileInput = ({
               onClick={(e) => {
                 e.stopPropagation();
                 setFile(null);
-                if (inputRef.current) inputRef.current.value = ""; // Clear file input value
+                if (inputRef.current) inputRef.current.value = "";
               }}
               className="mt-2 text-xs font-semibold text-red-600 hover:text-red-500"
             >
@@ -186,28 +187,9 @@ export default function AuthorUploadForm() {
     formData.append("coverImageFile", coverImageFile);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/author/books`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        }
-      );
-
-      if (response.status === 401 || response.status === 403) {
-        router.push("/login?redirect=/author/upload");
-        return;
-      }
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        const errorMsg = responseData.errors
-          ? responseData.errors.join(", ")
-          : responseData.error || "Failed to upload book";
-        throw new Error(errorMsg);
-      }
+      const responseData = await api.post("/api/author/books", formData, {
+        token,
+      });
 
       setSuccess(`Book "${responseData.title}" uploaded successfully!`);
       clearForm();
