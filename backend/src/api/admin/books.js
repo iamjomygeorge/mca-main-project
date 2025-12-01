@@ -9,6 +9,7 @@ const {
 
 const { bookUploadRules } = require("./admin.validator");
 const validate = require("../../middleware/validation.middleware");
+const { getBaseUrl } = require("../../utils/url.utils");
 
 const router = express.Router();
 
@@ -91,11 +92,19 @@ router.post(
 
       await client.query("COMMIT");
 
-      req.log.info(
-        { bookId: newBookResult.rows[0].id },
-        "Admin uploaded classic book"
-      );
-      res.status(201).json(newBookResult.rows[0]);
+      const newBook = newBookResult.rows[0];
+
+      const baseUrl = getBaseUrl(req);
+      const responseBook = {
+        ...newBook,
+        cover_image_url: newBook.cover_image_url
+          ? `${baseUrl}/api/books/${newBook.id}/cover`
+          : null,
+        book_file_url: null,
+      };
+
+      req.log.info({ bookId: newBook.id }, "Admin uploaded classic book");
+      res.status(201).json(responseBook);
     } catch (err) {
       await client.query("ROLLBACK");
       req.log.error(err, "Admin Book Upload Error");
