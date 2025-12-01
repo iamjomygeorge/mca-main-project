@@ -8,6 +8,7 @@ const requiredVars = [
   // Core
   "DATABASE_URL",
   "JWT_SECRET",
+  "REFRESH_TOKEN_SECRET",
   "FRONTEND_URL",
 
   // Payments (Stripe)
