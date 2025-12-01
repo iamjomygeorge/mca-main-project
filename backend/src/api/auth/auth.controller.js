@@ -10,7 +10,7 @@ const {
   saveRefreshToken,
   setRefreshCookie,
   generateCsrfState,
-} = require("./auth.utils");
+} = require("../../services/auth.service");
 
 const saltRounds = 10;
 const OTP_EXPIRY_MINUTES = 10;

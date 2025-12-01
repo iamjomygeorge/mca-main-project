@@ -5,14 +5,12 @@ const { getFileStream } = require("../../services/storage.service");
 const jwt = require("jsonwebtoken");
 const { bookIdRules } = require("./books.validator");
 const validate = require("../../middleware/validation.middleware");
+const { getBaseUrl } = require("../../utils/url.utils");
 
 const router = express.Router();
 
 const generateProxyUrls = (book, req) => {
-  const protocol = req.headers["x-forwarded-proto"] || req.protocol;
-  const host = req.headers["x-forwarded-host"] || req.get("host");
-  const baseUrl = `${protocol}://${host}`;
-
+  const baseUrl = getBaseUrl(req);
   return {
     ...book,
     cover_image_url: book.cover_image_url
@@ -30,13 +28,8 @@ router.get("/", async (req, res, next) => {
 
     const allBooks = await pool.query(
       `SELECT
-         b.id,
-         b.title,
-         b.description,
-         b.cover_image_url,
-         b.created_at,
-         a.name AS author_name,
-         b.featured
+         b.id, b.title, b.description, b.cover_image_url, b.created_at, b.featured,
+         a.name AS author_name
        FROM books b
        JOIN authors a ON b.author_id = a.id
        ORDER BY b.created_at DESC
@@ -58,17 +51,13 @@ router.get("/featured", async (req, res, next) => {
   try {
     const featuredBooks = await pool.query(
       `SELECT
-               b.id,
-               b.title,
-               b.description,
-               b.cover_image_url,
-               b.created_at,
-               a.name AS author_name
-             FROM books b
-             JOIN authors a ON b.author_id = a.id
-             WHERE b.featured = true
-             ORDER BY b.created_at DESC
-             LIMIT 10`
+         b.id, b.title, b.description, b.cover_image_url, b.created_at, b.featured,
+         a.name AS author_name
+       FROM books b
+       JOIN authors a ON b.author_id = a.id
+       WHERE b.featured = true
+       ORDER BY b.created_at DESC
+       LIMIT 10`
     );
 
     const transformedBooks = featuredBooks.rows.map((book) =>
@@ -96,8 +85,8 @@ router.get("/:id/cover", bookIdRules(), validate, async (req, res, next) => {
     const s3Key = bookResult.rows[0].cover_image_url;
 
     let contentType = "image/jpeg";
-    if (s3Key.endsWith(".png")) contentType = "image/png";
-    if (s3Key.endsWith(".webp")) contentType = "image/webp";
+    if (s3Key.match(/\.png$/i)) contentType = "image/png";
+    if (s3Key.match(/\.webp$/i)) contentType = "image/webp";
 
     const fileStream = await getFileStream(s3Key);
     res.setHeader("Content-Type", contentType);
@@ -196,10 +185,7 @@ router.get(
       }
 
       const isFree = parseFloat(bookData.price) <= 0;
-
-      const protocol = req.headers["x-forwarded-proto"] || req.protocol;
-      const host = req.headers["x-forwarded-host"] || req.get("host");
-      const baseUrl = `${protocol}://${host}`;
+      const baseUrl = getBaseUrl(req);
 
       if (bookData.cover_image_url) {
         bookData.cover_image_url = `${baseUrl}/api/books/${bookId}/cover`;
@@ -209,14 +195,12 @@ router.get(
         const token = req.headers["authorization"]
           ? req.headers["authorization"].split(" ")[1]
           : "";
-
         bookData.book_file_url = `${baseUrl}/api/books/${bookId}/content?token=${token}`;
       } else {
         delete bookData.book_file_url;
       }
 
       const responseData = { ...bookData, isOwned };
-
       res.json(responseData);
     } catch (err) {
       req.log.error(err, "Get Single Book Error");

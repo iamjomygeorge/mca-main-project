@@ -8,19 +8,16 @@ const {
   deleteFileFromS3,
   cleanupLocalFile,
 } = require("../../services/storage.service");
-
 const { bookUploadRules } = require("./author.validator");
 const validate = require("../../middleware/validation.middleware");
+const { getBaseUrl } = require("../../utils/url.utils");
 
 const router = express.Router();
 
 router.use(authenticateToken, isAuthor);
 
 const transformBooks = (books, req) => {
-  const protocol = req.headers["x-forwarded-proto"] || req.protocol;
-  const host = req.headers["x-forwarded-host"] || req.get("host");
-  const baseUrl = `${protocol}://${host}`;
-
+  const baseUrl = getBaseUrl(req);
   return books.map((book) => ({
     ...book,
     cover_image_url: book.cover_image_url
@@ -41,7 +38,6 @@ router.get("/overview", async (req, res, next) => {
     }
 
     const authorId = authorResult.rows[0].id;
-
     const statsResult = await pool.query(
       "SELECT COUNT(*) FROM books WHERE author_id = $1",
       [authorId]
@@ -70,7 +66,6 @@ router.get("/my-books", async (req, res, next) => {
     }
 
     const authorId = authorResult.rows[0].id;
-
     const booksResult = await pool.query(
       `SELECT
          b.id, b.title, b.description, b.cover_image_url, b.created_at, b.featured,
@@ -99,7 +94,6 @@ router.post(
   validate,
   async (req, res, next) => {
     const client = await pool.connect();
-
     let bookFileKey = null;
     let coverImageKey = null;
 
@@ -108,7 +102,6 @@ router.post(
 
     try {
       const userId = req.user.userId;
-
       const authorResult = await client.query(
         "SELECT id FROM authors WHERE user_id = $1",
         [userId]
@@ -121,17 +114,14 @@ router.post(
       const authorId = authorResult.rows[0].id;
       const { title, description, price, currency } = req.body;
 
-      if (!bookFile) {
+      if (!bookFile)
         return res
           .status(400)
           .json({ errors: ["Book file (EPUB) is required."] });
-      }
-      if (!coverImageFile) {
+      if (!coverImageFile)
         return res.status(400).json({ errors: ["Cover image is required."] });
-      }
 
       await client.query("BEGIN");
-
       const finalCurrency = currency || "INR";
 
       bookFileKey = await uploadFileToS3(
@@ -170,7 +160,6 @@ router.post(
       );
 
       await client.query("COMMIT");
-
       req.log.info(
         { bookId: newBook.id, authorId },
         "Author uploaded new book"
@@ -179,10 +168,8 @@ router.post(
     } catch (err) {
       await client.query("ROLLBACK");
       req.log.error(err, "Author Book Upload Error");
-
       if (bookFileKey) await deleteFileFromS3(bookFileKey);
       if (coverImageKey) await deleteFileFromS3(coverImageKey);
-
       next(err);
     } finally {
       if (bookFile) await cleanupLocalFile(bookFile.path);
