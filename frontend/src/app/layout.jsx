@@ -2,9 +2,12 @@ import { Inter } from "next/font/google";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
+import { validateEnv } from "@/config/env.validation";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
+
+validateEnv();
 
 export const metadata = {
   title: "Inkling",
