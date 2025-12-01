@@ -6,6 +6,7 @@ import BookCard from "@/components/BookCard";
 import { useEffect, useState } from "react";
 import { Icons } from "@/components/Icons";
 import Skeleton from "@/components/Skeleton";
+import { api } from "@/services/api.service";
 
 export default function Home() {
   const [featuredBooks, setFeaturedBooks] = useState([]);
@@ -14,13 +15,7 @@ export default function Home() {
   useEffect(() => {
     const fetchBooks = async () => {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/books/featured`
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch books");
-        }
-        const data = await response.json();
+        const data = await api.get("/api/books/featured");
         setFeaturedBooks(data.slice(0, 4));
       } catch (err) {
         console.error(err);
@@ -72,8 +67,8 @@ export default function Home() {
               Featured Books
             </h2>
             <div className="mt-10 flex flex-wrap justify-center gap-8">
-              {loading ?
-                  [...Array(4)].map((_, i) => (
+              {loading
+                ? [...Array(4)].map((_, i) => (
                     <div key={i} className="w-72 flex flex-col h-full">
                       <Skeleton className="aspect-[2/3] w-full rounded-lg" />
                       <div className="mt-4 space-y-2">
@@ -81,8 +76,8 @@ export default function Home() {
                         <Skeleton className="h-4 w-1/2" />
                       </div>
                     </div>
-                  )):
-                  featuredBooks.map((book) => (
+                  ))
+                : featuredBooks.map((book) => (
                     <div key={book.id} className="w-72">
                       <BookCard book={book} />
                     </div>

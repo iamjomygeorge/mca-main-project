@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Container from "@/components/Container";
 import EpubReader from "@/components/EpubReader";
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/services/api.service";
 
 export default function BookReaderPage() {
   const params = useParams();
@@ -31,22 +32,7 @@ export default function BookReaderPage() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/books/${id}`,
-          {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          }
-        );
-
-        if (response.status === 401 || response.status === 403) {
-          router.push("/login?redirect=/read/" + id);
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error("Book not found or could not be loaded.");
-        }
-        const data = await response.json();
+        const data = await api.get(`/api/books/${id}`, { token });
         setBookData(data);
       } catch (err) {
         setError(err.message);

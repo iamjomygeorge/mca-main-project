@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Container from "@/components/Container";
 import { Icons } from "@/components/Icons";
+import { api } from "@/services/api.service";
 
 const InfoItem = ({ icon: Icon, title, children }) => (
   <div className="flex gap-4">
@@ -38,20 +39,7 @@ export default function ContactPage() {
     setSuccess(false);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/contact`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fullName, email, message }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to send message.");
-      }
+      await api.post("/api/contact", { fullName, email, message });
 
       setSuccess(true);
       setFullName("");

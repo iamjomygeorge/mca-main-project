@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Icons } from "@/components/Icons";
+import { api } from "@/services/api.service";
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -42,36 +43,7 @@ export default function RegisterForm() {
     };
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(userData),
-        }
-      );
-
-      if (!response.ok) {
-        let errorMessage = "Registration failed. Please try again.";
-        try {
-          const errorData = await response.json();
-          if (
-            errorData.errors &&
-            Array.isArray(errorData.errors) &&
-            errorData.errors.length > 0
-          ) {
-            const firstError = errorData.errors[0];
-            errorMessage = Object.values(firstError)[0] || errorMessage;
-          } else if (errorData.error) {
-            errorMessage = errorData.error;
-          }
-        } catch (jsonError) {
-          console.error("Failed to parse error response:", jsonError);
-        }
-        throw new Error(errorMessage);
-      }
+      await api.post("/api/auth/register", userData);
 
       router.push("/login?registered=true");
     } catch (err) {

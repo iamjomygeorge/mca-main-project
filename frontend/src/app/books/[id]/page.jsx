@@ -9,6 +9,7 @@ import { Icons } from "@/components/Icons";
 import Image from "next/image";
 import { loadStripe } from "@stripe/stripe-js";
 import Skeleton from "@/components/Skeleton";
+import { api } from "@/services/api.service";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
@@ -51,24 +52,8 @@ export default function BookReaderPage() {
       setError(null);
     }
     try {
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const data = await api.get(`/api/books/${id}`, { token });
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/books/${id}`,
-        { headers }
-      );
-
-      // Note: optional auth check (fetchBookData) usually doesn't 401
-      // because the backend endpoint allows anonymous access.
-      // But if it does, we handle it silently or let it fail gracefully.
-
-      if (!response.ok) {
-        const errData = await response
-          .json()
-          .catch(() => ({ error: "Book not found or server error." }));
-        throw new Error(errData.error || "Failed to fetch book details.");
-      }
-      const data = await response.json();
       setBookData(data);
       setShowReader(data.isOwned || parseFloat(data.price) <= 0);
     } catch (err) {
@@ -99,27 +84,11 @@ export default function BookReaderPage() {
     setIsPurchasing(true);
     setError(null);
     try {
-      const initiateResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/purchase/initiate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ bookId: id }),
-        }
+      const initiateData = await api.post(
+        "/api/purchase/initiate",
+        { bookId: id },
+        { token }
       );
-
-      if (initiateResponse.status === 401 || initiateResponse.status === 403) {
-        router.push(`/login?redirect=/books/${id}`);
-        return;
-      }
-
-      const initiateData = await initiateResponse.json();
-      if (!initiateResponse.ok) {
-        throw new Error(initiateData.error || "Failed to start purchase.");
-      }
 
       const { checkoutUrl } = initiateData;
       if (!checkoutUrl) {

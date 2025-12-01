@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
+import { api } from "@/services/api.service";
 
 const getErrorMessage = (errorCode) => {
   switch (errorCode) {
@@ -68,20 +69,7 @@ export default function LoginForm() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(getErrorMessage(data.error) || "Failed to log in");
-      }
+      const data = await api.post("/api/auth/login", { email, password });
 
       if (data.twoFactorRequired) {
         setStep("otp");
@@ -106,23 +94,10 @@ export default function LoginForm() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login-2fa`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tempToken: tempToken, token: otpCode }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          getErrorMessage(data.error) || "Failed to verify 2FA code."
-        );
-      }
-
+      const data = await api.post("/api/auth/login-2fa", {
+        tempToken,
+        token: otpCode,
+      });
       login(data.token);
     } catch (err) {
       setError(err.message);

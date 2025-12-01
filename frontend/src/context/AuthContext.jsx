@@ -8,6 +8,7 @@ import {
   useCallback,
 } from "react";
 import { useRouter } from "next/navigation";
+import { api } from "@/services/api.service";
 
 const AuthContext = createContext(null);
 
@@ -26,21 +27,8 @@ export const AuthProvider = ({ children }) => {
 
     try {
       setLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/users/me`,
-        {
-          headers: { Authorization: `Bearer ${currentToken}` },
-        }
-      );
-
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-      } else {
-        localStorage.removeItem("token");
-        setToken(null);
-        setUser(null);
-      }
+      const userData = await api.get("/api/users/me", { token: currentToken });
+      setUser(userData);
     } catch (error) {
       console.error("Failed to fetch user:", error);
       localStorage.removeItem("token");

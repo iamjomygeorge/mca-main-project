@@ -8,6 +8,7 @@ import BookCard from "@/components/BookCard";
 import { Icons } from "@/components/Icons";
 import Link from "next/link";
 import Skeleton from "@/components/Skeleton";
+import { api } from "@/services/api.service";
 
 export default function MyLibraryPage() {
   const { token, loading: authLoading } = useAuth();
@@ -26,25 +27,7 @@ export default function MyLibraryPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/purchase/my-library`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.status === 401 || response.status === 403) {
-        router.push("/login?redirect=/my-library");
-        return;
-      }
-
-      if (!response.ok) {
-        const errData = await response
-          .json()
-          .catch(() => ({ error: "Failed to load library data." }));
-        throw new Error(errData.error || "Failed to fetch your library");
-      }
-      const data = await response.json();
+      const data = await api.get("/api/purchase/my-library", { token });
       setLibraryBooks(data);
     } catch (err) {
       setError(err.message);

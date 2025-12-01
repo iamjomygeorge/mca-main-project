@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Container from "@/components/Container";
 import BookCard from "@/components/BookCard";
 import Skeleton from "@/components/Skeleton";
+import { api } from "@/services/api.service";
 
 export default function BooksPage() {
   const [books, setBooks] = useState([]);
@@ -13,13 +14,7 @@ export default function BooksPage() {
   useEffect(() => {
     const fetchBooks = async () => {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/books`
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch books");
-        }
-        const data = await response.json();
+        const data = await api.get("/api/books");
         setBooks(data);
       } catch (err) {
         setError(err.message);
