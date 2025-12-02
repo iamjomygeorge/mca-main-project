@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 import { api } from "@/services/api.service";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 
 const getErrorMessage = (errorCode) => {
   switch (errorCode) {
@@ -53,12 +55,6 @@ export default function LoginForm() {
     }
   }, [searchParams]);
 
-  const commonInputClasses =
-    "block w-full appearance-none rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-zinc-900 placeholder-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm";
-  const commonLabelClasses =
-    "block text-sm font-medium text-zinc-900 dark:text-zinc-100";
-  const commonButtonClasses =
-    "flex w-full justify-center items-center gap-2 rounded-md border border-transparent bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed";
   const googleButtonClasses =
     "flex w-full justify-center items-center gap-3 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-200 shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
 
@@ -155,51 +151,39 @@ export default function LoginForm() {
       {step === "credentials" ? (
         <>
           <form className="space-y-6" onSubmit={handlePasswordSubmit}>
+            <Input
+              label="Email address"
+              id="email-address"
+              name="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+              disabled={isLoading || isGoogleLoading}
+            />
+
+            <Input
+              label="Password"
+              id="password"
+              name="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+              disabled={isLoading || isGoogleLoading}
+            />
+
             <div>
-              <label htmlFor="email-address" className={commonLabelClasses}>
-                Email address <span className="text-red-500">*</span>
-              </label>
-              <div className="mt-1">
-                <input
-                  id="email-address"
-                  name="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                  required
-                  className={commonInputClasses}
-                  disabled={isLoading || isGoogleLoading}
-                />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="password" className={commonLabelClasses}>
-                Password <span className="text-red-500">*</span>
-              </label>
-              <div className="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  required
-                  className={commonInputClasses}
-                  disabled={isLoading || isGoogleLoading}
-                />
-              </div>
-            </div>
-            <div>
-              <button
+              <Button
                 type="submit"
                 disabled={isLoading || isGoogleLoading}
-                className={commonButtonClasses}
+                isLoading={isLoading}
+                className="w-full"
               >
-                {isLoading ? <Icons.spinner className="h-5 w-5" /> : null}
                 {isLoading ? "Logging in..." : "Log In"}
-              </button>
+              </Button>
             </div>
           </form>
 
@@ -225,7 +209,7 @@ export default function LoginForm() {
               className={googleButtonClasses}
             >
               {isGoogleLoading ? (
-                <Icons.spinner className="h-5 w-5" />
+                <Icons.spinner className="h-5 w-5 animate-spin" />
               ) : (
                 <Icons.google className="h-5 w-5" />
               )}
@@ -235,35 +219,30 @@ export default function LoginForm() {
         </>
       ) : (
         <form className="space-y-6" onSubmit={handleOtpSubmit}>
+          <Input
+            label="6-Digit Code"
+            id="otp-code"
+            name="otpCode"
+            type="text"
+            inputMode="numeric"
+            pattern="\d{6}"
+            maxLength={6}
+            value={otpCode}
+            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+            required
+            placeholder="Check your email"
+          />
+
           <div>
-            <label htmlFor="otp-code" className={commonLabelClasses}>
-              6-Digit Code <span className="text-red-500">*</span>
-            </label>
-            <div className="mt-1">
-              <input
-                id="otp-code"
-                name="otpCode"
-                type="text"
-                inputMode="numeric"
-                pattern="\d{6}"
-                maxLength={6}
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                required
-                className={commonInputClasses}
-                placeholder="Check your email"
-              />
-            </div>
-          </div>
-          <div>
-            <button
+            <Button
               type="submit"
               disabled={isLoading || otpCode.length !== 6}
-              className={commonButtonClasses}
+              isLoading={isLoading}
+              className="w-full"
             >
-              {isLoading ? <Icons.spinner className="h-5 w-5" /> : null}
               {isLoading ? "Verifying..." : "Verify & Log In"}
-            </button>
+            </Button>
+
             <button
               type="button"
               onClick={() => {

@@ -1,28 +1,16 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Icons } from "@/components/Icons";
 import { api } from "@/services/api.service";
-import FileInput from "@/components/FileInput";
+import BookForm from "@/components/BookForm";
 
 export default function AdminUploadForm() {
   const { token } = useAuth();
-  const router = useRouter();
-  const [title, setTitle] = useState("");
   const [authors, setAuthors] = useState([]);
-  const [selectedAuthorId, setSelectedAuthorId] = useState("");
-  const [newAuthorName, setNewAuthorName] = useState("");
-  const [description, setDescription] = useState("");
-  const [coverImageFile, setCoverImageFile] = useState(null);
-  const [bookFile, setBookFile] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const coverImageInputRef = useRef(null);
-  const bookFileInputRef = useRef(null);
 
   useEffect(() => {
     if (!token) return;
@@ -37,69 +25,17 @@ export default function AdminUploadForm() {
     fetchAuthors();
   }, [token]);
 
-  const coverImagePreviewUrl = coverImageFile
-    ? URL.createObjectURL(coverImageFile)
-    : null;
-  const bookFilePreviewUrl = bookFile
-    ? "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZHRoPSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik00IDE5LjV2LTE1QTIuNSAyLjUgMCAwIDEgNi41IDJIMjB2MjBINi41YTIuNSAyLjUgMCAwIDEgMC01SDIwIi8+PC9zdmc+"
-    : null;
-
-  const clearForm = () => {
-    setTitle("");
-    setSelectedAuthorId("");
-    setNewAuthorName("");
-    setDescription("");
-    setCoverImageFile(null);
-    setBookFile(null);
-    if (coverImageInputRef.current) coverImageInputRef.current.value = "";
-    if (bookFileInputRef.current) bookFileInputRef.current.value = "";
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleUpload = async (formData, clearFormCallback) => {
+    setIsSubmitting(true);
     setSuccess("");
     setError(null);
-
-    const authorIsSelected = selectedAuthorId && selectedAuthorId !== "new";
-    const newAuthorIsEntered =
-      selectedAuthorId === "new" && newAuthorName.trim() !== "";
-
-    if (!title.trim()) {
-      setError("Book Title is required.");
-      return;
-    }
-    if (!authorIsSelected && !newAuthorIsEntered) {
-      setError("Please select an author or add a new one.");
-      return;
-    }
-    if (!coverImageFile) {
-      setError("A Cover Image is required.");
-      return;
-    }
-    if (!bookFile) {
-      setError("An EPUB file is required.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("description", description);
-    formData.append("bookFile", bookFile);
-    formData.append("coverImageFile", coverImageFile);
-
-    if (authorIsSelected) {
-      formData.append("authorId", selectedAuthorId);
-    } else if (newAuthorIsEntered) {
-      formData.append("newAuthorName", newAuthorName.trim());
-    }
 
     try {
       const uploadedBook = await api.post("/api/admin/books", formData, {
         token,
       });
       setSuccess(`Book "${uploadedBook.title}" uploaded successfully.`);
-      clearForm();
+      clearFormCallback();
     } catch (err) {
       setError(`${err.message}`);
     } finally {
@@ -107,157 +43,14 @@ export default function AdminUploadForm() {
     }
   };
 
-  const commonInputClasses =
-    "block w-full appearance-none rounded-md border-2 border-neutral-200 px-4 py-2 text-zinc-900 placeholder-zinc-500 focus:border-neutral-400 focus:outline-none focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm";
-  const commonLabelClasses =
-    "block text-sm font-medium leading-6 text-zinc-900 dark:text-zinc-100";
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-10" noValidate>
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Upload a New Book</h1>
-        <p className="mt-2 text-zinc-500 dark:text-zinc-400">
-          Fill in the details below to add a new classic to the collection.
-        </p>
-      </div>
-
-      {error && (
-        <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-500/30">
-          <p className="text-sm font-medium text-red-800 dark:text-red-200">
-            {error}
-          </p>
-        </div>
-      )}
-      {success && (
-        <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-4 border border-green-200 dark:border-green-500/30">
-          <p className="text-sm font-medium text-green-800 dark:text-green-200">
-            {success}
-          </p>
-        </div>
-      )}
-
-      <div className="p-8 bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg space-y-8">
-        <h2 className="text-lg font-semibold border-b pb-4 border-zinc-200 dark:border-zinc-700">
-          Book Details
-        </h2>
-        <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-6">
-          <div>
-            <label htmlFor="title" className={commonLabelClasses}>
-              Book Title <span className="text-red-500">*</span>
-            </label>
-            <div className="mt-2">
-              <input
-                type="text"
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                className={commonInputClasses}
-              />
-            </div>
-          </div>
-          <div>
-            <label htmlFor="author" className={commonLabelClasses}>
-              Author <span className="text-red-500">*</span>
-            </label>
-            <div className="mt-2">
-              <select
-                id="author"
-                value={selectedAuthorId}
-                onChange={(e) => setSelectedAuthorId(e.target.value)}
-                className={commonInputClasses}
-              >
-                <option value="" disabled>
-                  Select an Author
-                </option>
-                {authors.map((author) => (
-                  <option key={author.id} value={author.id}>
-                    {author.name}
-                  </option>
-                ))}
-                <option value="new">Add New Author</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {selectedAuthorId === "new" && (
-          <div>
-            <label htmlFor="newAuthorName" className={commonLabelClasses}>
-              New Author's Name <span className="text-red-500">*</span>
-            </label>
-            <div className="mt-2">
-              <input
-                type="text"
-                id="newAuthorName"
-                value={newAuthorName}
-                onChange={(e) => setNewAuthorName(e.target.value)}
-                className={commonInputClasses}
-              />
-            </div>
-          </div>
-        )}
-
-        <div>
-          <label htmlFor="description" className={commonLabelClasses}>
-            Description
-          </label>
-          <div className="mt-2">
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={6}
-              className={commonInputClasses}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="p-8 bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg space-y-8">
-        <h2 className="text-lg font-semibold border-b pb-4 border-zinc-200 dark:border-zinc-700">
-          Book Files
-        </h2>
-        <div className="grid grid-cols-1 gap-y-8 lg:grid-cols-2 lg:gap-x-8">
-          <FileInput
-            label="Book Cover"
-            required
-            accepted="image/*"
-            file={coverImageFile}
-            setFile={setCoverImageFile}
-            previewUrl={coverImagePreviewUrl}
-            inputRef={coverImageInputRef}
-            helpText="PNG OR JPG up to 10MB"
-            id="book-cover"
-          />
-          <FileInput
-            label="EPUB File"
-            required
-            accepted=".epub"
-            file={bookFile}
-            setFile={setBookFile}
-            previewUrl={bookFilePreviewUrl}
-            inputRef={bookFileInputRef}
-            helpText="EPUB files only"
-            id="book-file"
-          />
-        </div>
-      </div>
-
-      <div className="flex justify-end pt-6 border-t border-zinc-200 dark:border-zinc-800">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="flex items-center justify-center gap-2 rounded-md bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-zinc-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-sky-600 dark:text-white dark:hover:bg-sky-500 dark:disabled:bg-sky-500/50 transition-colors duration-200"
-        >
-          {isSubmitting ? (
-            <Icons.spinner className="h-5 w-5" />
-          ) : (
-            <Icons.upload className="h-5 w-5" />
-          )}
-          {isSubmitting ? "Uploading..." : "Upload Book"}
-        </button>
-      </div>
-    </form>
+    <BookForm
+      isAdmin={true}
+      authors={authors}
+      onSubmit={handleUpload}
+      isSubmitting={isSubmitting}
+      error={error}
+      success={success}
+    />
   );
 }

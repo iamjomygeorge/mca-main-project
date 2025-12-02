@@ -4,6 +4,8 @@ import { useState } from "react";
 import Container from "@/components/Container";
 import { Icons } from "@/components/Icons";
 import { api } from "@/services/api.service";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 
 const InfoItem = ({ icon: Icon, title, children }) => (
   <div className="flex gap-4">
@@ -27,11 +29,6 @@ export default function ContactPage() {
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const commonInputClasses =
-    "block w-full appearance-none rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-zinc-900 placeholder-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm";
-  const commonLabelClasses =
-    "block text-sm font-medium leading-6 text-zinc-900 dark:text-zinc-100";
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -40,7 +37,6 @@ export default function ContactPage() {
 
     try {
       await api.post("/api/contact", { fullName, email, message });
-
       setSuccess(true);
       setFullName("");
       setEmail("");
@@ -108,38 +104,30 @@ export default function ContactPage() {
                 )}
 
                 <div className="grid grid-cols-1 gap-6">
-                  <div>
-                    <label htmlFor="name" className={commonLabelClasses}>
-                      Full Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
-                      className={commonInputClasses}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="email" className={commonLabelClasses}>
-                      Email Address <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className={commonInputClasses}
-                      disabled={isLoading}
-                    />
-                  </div>
+                  <Input
+                    label="Full Name"
+                    id="name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
+                  <Input
+                    label="Email Address"
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
                 </div>
 
                 <div>
-                  <label htmlFor="message" className={commonLabelClasses}>
+                  <label
+                    htmlFor="message"
+                    className="block text-sm font-medium leading-6 text-zinc-900 dark:text-zinc-100 mb-1"
+                  >
                     Message <span className="text-red-500">*</span>
                   </label>
                   <textarea
@@ -148,19 +136,18 @@ export default function ContactPage() {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     required
-                    className={commonInputClasses}
+                    className="block w-full appearance-none rounded-md border-2 border-neutral-200 px-4 py-2 text-zinc-900 placeholder-zinc-500 focus:border-neutral-400 focus:outline-none focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm"
                     disabled={isLoading}
                   />
                 </div>
                 <div className="flex justify-end">
-                  <button
+                  <Button
                     type="submit"
-                    disabled={isLoading}
-                    className="flex items-center justify-center gap-2 rounded-md bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-zinc-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-sky-600 dark:text-white dark:hover:bg-sky-500 dark:disabled:bg-sky-500/50 transition-colors duration-200"
+                    isLoading={isLoading}
+                    className="dark:bg-sky-600 dark:hover:bg-sky-500"
                   >
-                    {isLoading ? <Icons.spinner className="h-5 w-5" /> : null}
                     {isLoading ? "Sending..." : "Send Message"}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>

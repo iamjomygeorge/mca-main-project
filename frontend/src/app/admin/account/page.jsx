@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
 import { api } from "@/services/api.service";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 
 const Enable2FA = ({ token, onStatusChange }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -55,11 +56,6 @@ const Enable2FA = ({ token, onStatusChange }) => {
     }
   };
 
-  const commonInputClasses =
-    "block w-full max-w-xs appearance-none rounded-md border-2 border-neutral-200 px-4 py-2 text-zinc-900 placeholder-zinc-500 focus:border-neutral-400 focus:outline-none focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm";
-  const commonLabelClasses =
-    "block text-sm font-medium leading-6 text-zinc-900 dark:text-zinc-100 mb-1";
-
   return (
     <div>
       <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
@@ -83,18 +79,13 @@ const Enable2FA = ({ token, onStatusChange }) => {
       )}
 
       {!verificationSent ? (
-        <button
+        <Button
           onClick={handleSendCode}
-          disabled={isLoading}
-          className="flex items-center justify-center gap-2 rounded-md bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-sky-600 dark:text-white dark:hover:bg-sky-500 transition-colors duration-200"
+          isLoading={isLoading}
+          icon={<Icons.password className="h-5 w-5" />}
         >
-          {isLoading ? (
-            <Icons.spinner className="h-5 w-5" />
-          ) : (
-            <Icons.password className="h-5 w-5" />
-          )}
           {isLoading ? "Sending Code..." : "Enable Email 2FA"}
-        </button>
+        </Button>
       ) : (
         <form onSubmit={handleVerifyCode} className="space-y-4">
           {success && (
@@ -104,45 +95,41 @@ const Enable2FA = ({ token, onStatusChange }) => {
               </p>
             </div>
           )}
-          <div>
-            <label htmlFor="otpCode" className={commonLabelClasses}>
-              Verification Code
-            </label>
-            <input
-              type="text"
-              id="otpCode"
-              value={otpCode}
-              onChange={(e) =>
-                setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-              }
-              required
-              maxLength={6}
-              pattern="\d{6}"
-              inputMode="numeric"
-              className={commonInputClasses}
-              placeholder="Enter 6-digit code"
-            />
+
+          <Input
+            label="Verification Code"
+            id="otpCode"
+            value={otpCode}
+            onChange={(e) =>
+              setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+            }
+            required
+            maxLength={6}
+            pattern="\d{6}"
+            inputMode="numeric"
+            placeholder="Enter 6-digit code"
+            className="max-w-xs"
+          />
+
+          <div className="flex items-center gap-4">
+            <Button
+              type="submit"
+              isLoading={isLoading}
+              disabled={otpCode.length !== 6}
+              icon={<Icons.password className="h-5 w-5" />}
+              className="bg-green-600 hover:bg-green-500 dark:bg-green-600 dark:hover:bg-green-500"
+            >
+              {isLoading ? "Verifying..." : "Verify & Enable"}
+            </Button>
+            <button
+              type="button"
+              onClick={() => setVerificationSent(false)}
+              disabled={isLoading}
+              className="text-sm text-zinc-600 dark:text-zinc-400 hover:underline"
+            >
+              Cancel
+            </button>
           </div>
-          <button
-            type="submit"
-            disabled={isLoading || otpCode.length !== 6}
-            className="flex items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-          >
-            {isLoading ? (
-              <Icons.spinner className="h-5 w-5" />
-            ) : (
-              <Icons.password className="h-5 w-5" />
-            )}
-            {isLoading ? "Verifying..." : "Verify & Enable"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setVerificationSent(false)}
-            disabled={isLoading}
-            className="ml-4 text-sm text-zinc-600 dark:text-zinc-400 hover:underline"
-          >
-            Cancel
-          </button>
         </form>
       )}
     </div>
@@ -188,11 +175,6 @@ const Disable2FA = ({ token, onStatusChange }) => {
     }
   };
 
-  const commonInputClasses =
-    "block w-full max-w-xs appearance-none rounded-md border-2 border-neutral-200 px-4 py-2 text-zinc-900 placeholder-zinc-500 focus:border-neutral-400 focus:outline-none focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm";
-  const commonLabelClasses =
-    "block text-sm font-medium leading-6 text-zinc-900 dark:text-zinc-100 mb-1";
-
   return (
     <div>
       <p className="text-sm text-green-600 dark:text-green-400 mb-4">
@@ -214,14 +196,14 @@ const Disable2FA = ({ token, onStatusChange }) => {
       )}
 
       {!showPasswordInput ? (
-        <button
+        <Button
           onClick={handleDisableRequest}
-          disabled={isLoading}
-          className="flex items-center justify-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+          isLoading={isLoading}
+          icon={<Icons.password className="h-5 w-5" />}
+          className="bg-red-600 hover:bg-red-500 dark:bg-red-600 dark:hover:bg-red-500"
         >
-          <Icons.password className="h-5 w-5" />
           Disable Email 2FA
-        </button>
+        </Button>
       ) : (
         <form
           onSubmit={handleConfirmDisable}
@@ -230,35 +212,26 @@ const Disable2FA = ({ token, onStatusChange }) => {
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Enter your current password to confirm disabling 2FA.
           </p>
-          <div>
-            <label
-              htmlFor="currentPasswordDisable"
-              className={commonLabelClasses}
-            >
-              Current Password
-            </label>
-            <input
-              type="password"
-              id="currentPasswordDisable"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              required
-              className={commonInputClasses}
-            />
-          </div>
-          <div className="flex gap-4">
-            <button
+
+          <Input
+            label="Current Password"
+            type="password"
+            id="currentPasswordDisable"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            required
+            className="max-w-xs"
+          />
+
+          <div className="flex gap-4 items-center">
+            <Button
               type="submit"
-              disabled={isLoading}
-              className="flex items-center justify-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              isLoading={isLoading}
+              icon={<Icons.password className="h-5 w-5" />}
+              className="bg-red-600 hover:bg-red-500 dark:bg-red-600 dark:hover:bg-red-500"
             >
-              {isLoading ? (
-                <Icons.spinner className="h-5 w-5" />
-              ) : (
-                <Icons.password className="h-5 w-5" />
-              )}
               {isLoading ? "Disabling..." : "Confirm Disable"}
-            </button>
+            </Button>
             <button
               type="button"
               onClick={() => {
@@ -284,7 +257,6 @@ const Disable2FA = ({ token, onStatusChange }) => {
 
 const TwoFactorAuthSection = () => {
   const { user, token, loading: authLoading, refreshUser } = useAuth();
-  const router = useRouter();
   const [is2faCurrentlyEnabled, setIs2faCurrentlyEnabled] = useState(null);
 
   useEffect(() => {
@@ -295,9 +267,7 @@ const TwoFactorAuthSection = () => {
 
   const handleStatusChange = (newStatus) => {
     setIs2faCurrentlyEnabled(newStatus);
-    if (refreshUser) {
-      refreshUser();
-    }
+    if (refreshUser) refreshUser();
   };
 
   if (authLoading || is2faCurrentlyEnabled === null) {

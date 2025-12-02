@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Container from "@/components/Container";
 import BookCard from "@/components/BookCard";
-import Skeleton from "@/components/Skeleton";
+import BookGridSkeleton from "@/components/BookGridSkeleton";
 import { api } from "@/services/api.service";
 
 export default function BooksPage() {
@@ -35,17 +35,7 @@ export default function BooksPage() {
       {error && <p className="text-red-500 mb-4">Error: {error}</p>}
 
       {loading ? (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-8">
-          {[...Array(18)].map((_, i) => (
-            <div key={i} className="flex flex-col h-full">
-              <Skeleton className="aspect-[2/3] w-full rounded-lg" />
-              <div className="mt-4 space-y-2">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <BookGridSkeleton count={18} />
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-8">
           {books.length > 0 ? (

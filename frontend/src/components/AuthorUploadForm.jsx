@@ -1,87 +1,27 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Icons } from "@/components/Icons";
 import { api } from "@/services/api.service";
-import FileInput from "@/components/FileInput";
+import BookForm from "@/components/BookForm";
 
 export default function AuthorUploadForm() {
   const { token } = useAuth();
-  const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("0.00");
-  const [currency, setCurrency] = useState("INR");
-  const [coverImageFile, setCoverImageFile] = useState(null);
-  const [bookFile, setBookFile] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const coverImageInputRef = useRef(null);
-  const bookFileInputRef = useRef(null);
-
-  const coverImagePreviewUrl =
-    coverImageFile instanceof File ? URL.createObjectURL(coverImageFile) : null;
-  const bookFilePreviewUrl =
-    bookFile instanceof File
-      ? "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZHRoPSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik00IDE5LjV2LTE1QTIuNSAyLjUgMCAwIDEgNi41IDJIMjB2MjBINi41YTIuNSAyLjUgMCAwIDEgMC01SDIwIi8+PC9zdmc+"
-      : null;
-
-  const clearForm = () => {
-    setTitle("");
-    setDescription("");
-    setPrice("0.00");
-    setCurrency("INR");
-    setCoverImageFile(null);
-    setBookFile(null);
-    if (coverImageInputRef.current) coverImageInputRef.current.value = "";
-    if (bookFileInputRef.current) bookFileInputRef.current.value = "";
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleUpload = async (formData, clearFormCallback) => {
+    setIsSubmitting(true);
     setSuccess("");
     setError(null);
-
-    if (!title.trim()) {
-      setError("Book Title is required.");
-      return;
-    }
-    if (!coverImageFile) {
-      setError("A Cover Image is required.");
-      return;
-    }
-    if (!bookFile) {
-      setError("An EPUB file is required.");
-      return;
-    }
-    const numericPrice = parseFloat(price);
-    if (isNaN(numericPrice) || numericPrice < 0) {
-      setError(
-        "Please enter a valid, non-negative price (e.g., 0.00, 599.00)."
-      );
-      return;
-    }
-
-    setIsSubmitting(true);
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("description", description);
-    formData.append("price", numericPrice.toFixed(2));
-    formData.append("currency", currency);
-    formData.append("bookFile", bookFile);
-    formData.append("coverImageFile", coverImageFile);
 
     try {
       const responseData = await api.post("/api/author/books", formData, {
         token,
       });
-
       setSuccess(`Book "${responseData.title}" uploaded successfully!`);
-      clearForm();
+      clearFormCallback();
     } catch (err) {
       setError(`Upload failed: ${err.message}`);
     } finally {
@@ -89,138 +29,13 @@ export default function AuthorUploadForm() {
     }
   };
 
-  const commonInputClasses =
-    "block w-full appearance-none rounded-md border-2 border-neutral-200 px-4 py-2 text-zinc-900 placeholder-zinc-500 focus:border-neutral-400 focus:outline-none focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm";
-  const commonLabelClasses =
-    "block text-sm font-medium leading-6 text-zinc-900 dark:text-zinc-100";
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-10" noValidate>
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Upload Your Book</h1>
-        <p className="mt-2 text-zinc-500 dark:text-zinc-400">
-          Share your literary creation with the world.
-        </p>
-      </div>
-
-      {error && (
-        <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-500/30">
-          <p className="text-sm font-medium text-red-800 dark:text-red-200">
-            {error}
-          </p>
-        </div>
-      )}
-      {success && (
-        <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-4 border border-green-200 dark:border-green-500/30">
-          <p className="text-sm font-medium text-green-800 dark:text-green-200">
-            {success}
-          </p>
-        </div>
-      )}
-
-      <div className="p-8 bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg space-y-8">
-        <h2 className="text-lg font-semibold border-b pb-4 border-zinc-200 dark:border-zinc-700">
-          Book Details
-        </h2>
-        <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-6">
-          <div>
-            <label htmlFor="title" className={commonLabelClasses}>
-              Book Title <span className="text-red-500">*</span>
-            </label>
-            <div className="mt-2">
-              <input
-                type="text"
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                className={commonInputClasses}
-              />
-            </div>
-          </div>
-          <div>
-            <label htmlFor="price" className={commonLabelClasses}>
-              Price ({currency}) <span className="text-red-500">*</span>
-            </label>
-            <div className="mt-2">
-              <input
-                type="number"
-                id="price"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-                min="0.00"
-                step="0.01"
-                className={commonInputClasses}
-                placeholder="e.g., 299.00"
-              />
-            </div>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-              Set to 0.00 for a free book.
-            </p>
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="description" className={commonLabelClasses}>
-            Description / Synopsis
-          </label>
-          <div className="mt-2">
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={6}
-              className={commonInputClasses}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="p-8 bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg space-y-8">
-        <h2 className="text-lg font-semibold border-b pb-4 border-zinc-200 dark:border-zinc-700">
-          Book Files
-        </h2>
-        <div className="grid grid-cols-1 gap-y-8 lg:grid-cols-2 lg:gap-x-8">
-          <FileInput
-            label="Book Cover Image"
-            required
-            accepted="image/*"
-            file={coverImageFile}
-            setFile={setCoverImageFile}
-            previewUrl={coverImagePreviewUrl}
-            inputRef={coverImageInputRef}
-            helpText="PNG, JPG, WEBP, etc. Recommended aspect ratio 2:3."
-            id="cover-image"
-          />
-          <FileInput
-            label="Book File (EPUB format)"
-            required
-            accepted=".epub"
-            file={bookFile}
-            setFile={setBookFile}
-            previewUrl={bookFilePreviewUrl}
-            inputRef={bookFileInputRef}
-            helpText="EPUB files only. Max size 50MB."
-            id="book-file"
-          />
-        </div>
-      </div>
-
-      <div className="flex justify-end pt-6 border-t border-zinc-200 dark:border-zinc-800">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="flex items-center justify-center gap-2 rounded-md bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-zinc-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-sky-600 dark:text-white dark:hover:bg-sky-500 dark:disabled:bg-sky-500/50 transition-colors duration-200"
-        >
-          {isSubmitting ? (
-            <Icons.spinner className="h-5 w-5" />
-          ) : (
-            <Icons.upload className="h-5 w-5" />
-          )}
-          {isSubmitting ? "Uploading..." : "Upload Book"}
-        </button>
-      </div>
-    </form>
+    <BookForm
+      isAdmin={false}
+      onSubmit={handleUpload}
+      isSubmitting={isSubmitting}
+      error={error}
+      success={success}
+    />
   );
 }

@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Container from "@/components/Container";
 import BookCard from "@/components/BookCard";
+import BookGridSkeleton from "@/components/BookGridSkeleton";
 import { Icons } from "@/components/Icons";
 import Link from "next/link";
-import Skeleton from "@/components/Skeleton";
 import { api } from "@/services/api.service";
 
 export default function MyLibraryPage() {
@@ -50,18 +50,7 @@ export default function MyLibraryPage() {
       {error && <p className="text-center text-red-500 mb-4">Error: {error}</p>}
 
       {loading ? (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-8">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="flex flex-col h-full">
-              <Skeleton className="aspect-[2/3] w-full rounded-lg" />
-              <div className="mt-4 space-y-2">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
-                <Skeleton className="h-8 w-full mt-2" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <BookGridSkeleton count={4} />
       ) : (
         <>
           {libraryBooks.length > 0 ? (

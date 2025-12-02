@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 import { api } from "@/services/api.service";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 
 export default function ChangePasswordForm() {
   const { token } = useAuth();
@@ -57,11 +59,6 @@ export default function ChangePasswordForm() {
     }
   };
 
-  const commonInputClasses =
-    "block w-full appearance-none rounded-md border-2 border-neutral-200 px-4 py-2 text-zinc-900 placeholder-zinc-500 focus:border-neutral-400 focus:outline-none focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm";
-  const commonLabelClasses =
-    "block text-sm font-medium leading-6 text-zinc-900 dark:text-zinc-100";
-
   return (
     <form onSubmit={handleSubmit} className="space-y-10">
       <div>
@@ -91,67 +88,41 @@ export default function ChangePasswordForm() {
           Security Details
         </h2>
         <div className="space-y-6">
-          <div>
-            <label htmlFor="currentPassword" className={commonLabelClasses}>
-              Current Password <span className="text-red-500">*</span>
-            </label>
-            <div className="mt-2">
-              <input
-                type="password"
-                id="currentPassword"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                required
-                className={commonInputClasses}
-              />
-            </div>
-          </div>
-          <div>
-            <label htmlFor="newPassword" className={commonLabelClasses}>
-              New Password <span className="text-red-500">*</span>
-            </label>
-            <div className="mt-2">
-              <input
-                type="password"
-                id="newPassword"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-                className={commonInputClasses}
-              />
-            </div>
-          </div>
-          <div>
-            <label htmlFor="confirmPassword" className={commonLabelClasses}>
-              Confirm New Password <span className="text-red-500">*</span>
-            </label>
-            <div className="mt-2">
-              <input
-                type="password"
-                id="confirmPassword"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className={commonInputClasses}
-              />
-            </div>
-          </div>
+          <Input
+            label="Current Password"
+            id="currentPassword"
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            required
+          />
+          <Input
+            label="New Password"
+            id="newPassword"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+          />
+          <Input
+            label="Confirm New Password"
+            id="confirmPassword"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
         </div>
       </div>
 
       <div className="flex justify-end pt-6 border-t border-zinc-200 dark:border-zinc-800">
-        <button
+        <Button
           type="submit"
-          disabled={isSubmitting}
-          className="flex items-center justify-center gap-2 rounded-md bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-zinc-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-sky-600 dark:text-white dark:hover:bg-sky-500 dark:disabled:bg-sky-500/50 transition-colors duration-200"
+          isLoading={isSubmitting}
+          icon={<Icons.password className="h-5 w-5" />}
         >
-          {isSubmitting ? (
-            <Icons.spinner className="h-5 w-5" />
-          ) : (
-            <Icons.password className="h-5 w-5" />
-          )}
           {isSubmitting ? "Saving..." : "Save Changes"}
-        </button>
+        </Button>
       </div>
     </form>
   );
