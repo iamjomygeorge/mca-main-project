@@ -23,11 +23,6 @@ class ApiService {
 
     if (token) {
       config.headers["Authorization"] = `Bearer ${token}`;
-    } else if (typeof window !== "undefined") {
-      const storedToken = localStorage.getItem("token");
-      if (storedToken) {
-        config.headers["Authorization"] = `Bearer ${storedToken}`;
-      }
     }
 
     try {
@@ -37,14 +32,18 @@ class ApiService {
         logger.warn(`Unauthorized access attempt to ${endpoint}`);
       }
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type");
+      let data = null;
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      }
 
       if (!response.ok) {
         const errorMessage =
-          data.error ||
-          (data.errors && Array.isArray(data.errors)
+          data?.error ||
+          (data?.errors && Array.isArray(data.errors)
             ? Object.values(data.errors[0])[0]
-            : "An unexpected error occurred");
+            : `Request failed with status ${response.status}`);
 
         throw new Error(errorMessage);
       }

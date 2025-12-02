@@ -52,7 +52,8 @@ export default function MessageItem({ message, token, onUpdate, onDelete }) {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (e) => {
+    e.stopPropagation();
     if (isDeleting) return;
     if (
       !window.confirm(
@@ -78,11 +79,22 @@ export default function MessageItem({ message, token, onUpdate, onDelete }) {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleToggleExpand();
+    }
+  };
+
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/50 shadow-sm">
+    <div className="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/50 shadow-sm transition-colors hover:border-zinc-300 dark:hover:border-zinc-700">
       <div
-        className="flex items-center justify-between p-4 cursor-pointer"
+        role="button"
+        tabIndex="0"
+        aria-expanded={isExpanded}
+        className="flex items-center justify-between p-4 cursor-pointer outline-none focus:ring-2 focus:ring-inset focus:ring-sky-500 rounded-t-lg"
         onClick={handleToggleExpand}
+        onKeyDown={handleKeyDown}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -118,23 +130,29 @@ export default function MessageItem({ message, token, onUpdate, onDelete }) {
       </div>
 
       {isExpanded && (
-        <div className="border-t border-zinc-200 dark:border-zinc-700 p-4">
+        <div className="border-t border-zinc-200 dark:border-zinc-700 p-4 animate-in slide-in-from-top-1 fade-in duration-200">
           <p className="text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
             {message.message}
           </p>
           <div className="flex items-center justify-between mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700">
             <div className="flex items-center gap-2">
               <button
-                onClick={() => handleSetStatus("RESOLVED")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSetStatus("RESOLVED");
+                }}
                 disabled={isUpdating || message.status === "RESOLVED"}
-                className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-green-500 disabled:opacity-50"
+                className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-green-500 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
               >
                 Mark as Resolved
               </button>
               <button
-                onClick={() => handleSetStatus("NEW")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSetStatus("NEW");
+                }}
                 disabled={isUpdating || message.status === "NEW"}
-                className="rounded-md bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-sky-500 disabled:opacity-50"
+                className="rounded-md bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-sky-500 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
               >
                 Mark as New
               </button>
@@ -142,7 +160,7 @@ export default function MessageItem({ message, token, onUpdate, onDelete }) {
             <button
               onClick={handleDelete}
               disabled={isDeleting}
-              className="flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-500 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-500 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
             >
               <Icons.spinner
                 className={`h-4 w-4 ${isDeleting ? "block" : "hidden"}`}
