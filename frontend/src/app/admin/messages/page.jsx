@@ -6,6 +6,7 @@ import { Icons } from "@/components/Icons";
 import { api } from "@/services/api.service";
 import MessageItem from "@/components/MessageItem";
 import Skeleton from "@/components/Skeleton";
+import EmptyState from "@/components/EmptyState";
 
 export default function AdminMessagesPage() {
   const { token } = useAuth();
@@ -91,15 +92,11 @@ export default function AdminMessagesPage() {
               />
             ))
           ) : (
-            <div className="text-center py-10 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg">
-              <Icons.mail className="mx-auto h-12 w-12 text-zinc-400" />
-              <h3 className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                Inbox is empty
-              </h3>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                You have no new messages.
-              </p>
-            </div>
+            <EmptyState
+              icon={Icons.mail}
+              title="Inbox is empty"
+              description="You have no new messages."
+            />
           )}
         </div>
       )}

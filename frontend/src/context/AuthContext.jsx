@@ -18,47 +18,69 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const fetchUser = useCallback(async (currentToken) => {
-    if (!currentToken) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
+  const fetchUser = useCallback(async (accessToken) => {
     try {
-      setLoading(true);
-      const userData = await api.get("/api/users/me", { token: currentToken });
+      const userData = await api.get("/api/users/me", { token: accessToken });
       setUser(userData);
     } catch (error) {
-      console.error("Failed to fetch user:", error);
-      localStorage.removeItem("token");
+      console.error("Failed to fetch user profile:", error);
       setToken(null);
       setUser(null);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    if (storedToken) {
-      setToken(storedToken);
-      fetchUser(storedToken);
-    } else {
-      setLoading(false);
-    }
+    const checkSession = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Session expired or invalid");
+        }
+
+        const data = await response.json();
+
+        if (data.token) {
+          setToken(data.token);
+          await fetchUser(data.token);
+        }
+      } catch (error) {
+        setToken(null);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkSession();
   }, [fetchUser]);
 
   const login = (newToken) => {
-    localStorage.setItem("token", newToken);
     setToken(newToken);
     fetchUser(newToken).then(() => {
       router.push("/");
     });
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
+  const logout = async () => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+
     setToken(null);
     setUser(null);
     router.push("/login");

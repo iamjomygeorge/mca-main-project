@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import Container from "@/components/Container";
 import BookCard from "@/components/BookCard";
 import BookGridSkeleton from "@/components/BookGridSkeleton";
+import EmptyState from "@/components/EmptyState";
 import { Icons } from "@/components/Icons";
 import Link from "next/link";
 import { api } from "@/services/api.service";
@@ -60,23 +61,19 @@ export default function MyLibraryPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-10 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg">
-              <Icons.book className="mx-auto h-12 w-12 text-zinc-400" />
-              <h3 className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                Your library is empty
-              </h3>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                Books you purchase will appear here.
-              </p>
-              <div className="mt-6">
+            <EmptyState
+              icon={Icons.book}
+              title="Your library is empty"
+              description="Books you purchase will appear here."
+              action={
                 <Link
                   href="/books"
                   className="inline-flex items-center rounded-md bg-sky-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
                 >
                   Browse Books
                 </Link>
-              </div>
-            </div>
+              }
+            />
           )}
         </>
       )}

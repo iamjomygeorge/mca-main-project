@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import BookCard from "@/components/BookCard";
 import BookGridSkeleton from "@/components/BookGridSkeleton";
+import EmptyState from "@/components/EmptyState";
 import { Icons } from "@/components/Icons";
 import Link from "next/link";
 import { api } from "@/services/api.service";
@@ -117,28 +118,23 @@ export default function MyBooksPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-10 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg">
-              <Icons.book className="mx-auto h-12 w-12 text-zinc-400" />
-              <h3 className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                No books published yet
-              </h3>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                Get started by uploading your first book.
-              </p>
-              <div className="mt-6">
+            <EmptyState
+              icon={Icons.book}
+              title="No books published yet"
+              description="Get started by uploading your first book."
+              action={
                 <Link
                   href="/author/upload"
                   className="inline-flex items-center rounded-md bg-sky-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
                 >
-                  {" "}
                   <Icons.upload
                     className="-ml-0.5 mr-1.5 h-5 w-5"
                     aria-hidden="true"
                   />
                   Upload Book
                 </Link>
-              </div>
-            </div>
+              }
+            />
           )}
         </>
       )}
