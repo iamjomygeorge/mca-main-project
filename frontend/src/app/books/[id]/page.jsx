@@ -10,21 +10,11 @@ import Image from "next/image";
 import { loadStripe } from "@stripe/stripe-js";
 import Skeleton from "@/components/Skeleton";
 import { api } from "@/services/api.service";
+import { formatCurrency } from "@/utils/formatters";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
 );
-
-const formatCurrency = (amount, currency = "INR") => {
-  try {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: currency,
-    }).format(amount);
-  } catch (e) {
-    return `${currency} ${parseFloat(amount).toFixed(2)}`;
-  }
-};
 
 export default function BookReaderPage() {
   const params = useParams();

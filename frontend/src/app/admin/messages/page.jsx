@@ -6,17 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 import Skeleton from "@/components/Skeleton";
 import { api } from "@/services/api.service";
-
-const formatTimestamp = (isoDate) => {
-  try {
-    return new Date(isoDate).toLocaleString(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-  } catch (e) {
-    return "Invalid Date";
-  }
-};
+import { formatTimestamp } from "@/utils/formatters";
 
 function MessageItem({ message, token, onUpdate, onDelete }) {
   const [isExpanded, setIsExpanded] = useState(false);
