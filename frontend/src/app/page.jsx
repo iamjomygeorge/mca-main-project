@@ -1,31 +1,25 @@
-"use client";
-
 import Link from "next/link";
 import Container from "@/components/Container";
 import BookCard from "@/components/BookCard";
-import { useEffect, useState } from "react";
 import { Icons } from "@/components/Icons";
-import Skeleton from "@/components/Skeleton";
-import { api } from "@/services/api.service";
 
-export default function Home() {
-  const [featuredBooks, setFeaturedBooks] = useState([]);
-  const [loading, setLoading] = useState(true);
+async function getFeaturedBooks() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-  useEffect(() => {
-    const fetchBooks = async () => {
-      try {
-        const data = await api.get("/api/books/featured");
-        setFeaturedBooks(data.slice(0, 4));
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const res = await fetch(`${apiUrl}/api/books/featured`, {
+    cache: "no-store",
+  });
 
-    fetchBooks();
-  }, []);
+  if (!res.ok) {
+    throw new Error("Failed to fetch featured books");
+  }
+
+  return res.json();
+}
+
+export default async function Home() {
+  const featuredBooks = await getFeaturedBooks();
+  const displayBooks = featuredBooks.slice(0, 4);
 
   return (
     <main>
@@ -57,7 +51,8 @@ export default function Home() {
         </Container>
       </section>
 
-      {(loading || featuredBooks.length > 0) && (
+      {/* Featured Books Section */}
+      {displayBooks.length > 0 && (
         <section
           id="featured-books"
           className="py-20 bg-zinc-100 dark:bg-zinc-800"
@@ -67,21 +62,11 @@ export default function Home() {
               Featured Books
             </h2>
             <div className="mt-10 flex flex-wrap justify-center gap-8">
-              {loading
-                ? [...Array(4)].map((_, i) => (
-                    <div key={i} className="w-72 flex flex-col h-full">
-                      <Skeleton className="aspect-[2/3] w-full rounded-lg" />
-                      <div className="mt-4 space-y-2">
-                        <Skeleton className="h-5 w-3/4" />
-                        <Skeleton className="h-4 w-1/2" />
-                      </div>
-                    </div>
-                  ))
-                : featuredBooks.map((book) => (
-                    <div key={book.id} className="w-72">
-                      <BookCard book={book} />
-                    </div>
-                  ))}
+              {displayBooks.map((book) => (
+                <div key={book.id} className="w-72">
+                  <BookCard book={book} />
+                </div>
+              ))}
             </div>
           </Container>
         </section>
