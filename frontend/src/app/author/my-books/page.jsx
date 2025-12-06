@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import BookCard from "@/components/BookCard";
 import BookGridSkeleton from "@/components/BookGridSkeleton";
@@ -12,7 +11,6 @@ import { api } from "@/services/api.service";
 
 export default function MyBooksPage() {
   const { token, loading: authLoading } = useAuth();
-  const router = useRouter();
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

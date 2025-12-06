@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/services/api.service";
+import logger from "@/utils/logger";
 
 const AuthContext = createContext(null);
 
@@ -23,7 +24,7 @@ export const AuthProvider = ({ children }) => {
       const userData = await api.get("/api/users/me", { token: accessToken });
       setUser(userData);
     } catch (error) {
-      console.error("Failed to fetch user profile:", error);
+      logger.error("Failed to fetch user profile:", error);
       setToken(null);
       setUser(null);
     }
@@ -78,7 +79,7 @@ export const AuthProvider = ({ children }) => {
         credentials: "include",
       });
     } catch (error) {
-      console.error("Logout failed:", error);
+      logger.error("Logout failed:", error);
     }
 
     setToken(null);

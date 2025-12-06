@@ -17,7 +17,7 @@ export default function EpubReader({ url }) {
       try {
         bookRef.current.destroy();
       } catch (e) {
-        console.warn("Error destroying book instance:", e);
+        logger.warn("Error destroying book instance:", e);
       }
       bookRef.current = null;
       renditionRef.current = null;

@@ -3,10 +3,11 @@
 import { useEffect } from "react";
 import Container from "@/components/Container";
 import { Button } from "@/components/ui/Button";
+import logger from "@/utils/logger";
 
 export default function BooksError({ error, reset }) {
   useEffect(() => {
-    console.error("Books Page Error:", error);
+    logger.error("Books Page Error:", error);
   }, [error]);
 
   return (

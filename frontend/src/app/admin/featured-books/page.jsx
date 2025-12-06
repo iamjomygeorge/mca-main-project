@@ -1,17 +1,14 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Icons } from "@/components/Icons";
 import Container from "@/components/Container";
 import BookCard from "@/components/BookCard";
 import Skeleton from "@/components/Skeleton";
 import { api } from "@/services/api.service";
 
 export default function FeaturedBooksPage() {
-  const { token, loading: authLoading } = useAuth();
-  const router = useRouter();
+  const { token } = useAuth();
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

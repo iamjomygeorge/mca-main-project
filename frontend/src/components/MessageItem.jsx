@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Icons } from "@/components/Icons";
 import { formatTimestamp } from "@/utils/formatters";
 import { api } from "@/services/api.service";
+import logger from "@/utils/logger";
 
 export default function MessageItem({ message, token, onUpdate, onDelete }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -46,7 +47,7 @@ export default function MessageItem({ message, token, onUpdate, onDelete }) {
       );
       onUpdate(updatedMessage);
     } catch (err) {
-      console.error(err);
+      logger.error("Error updating message status:", err);
     } finally {
       setIsUpdating(false);
     }
@@ -66,7 +67,7 @@ export default function MessageItem({ message, token, onUpdate, onDelete }) {
       await api.delete(`/api/admin/messages/${message.id}`, { token });
       onDelete(message.id);
     } catch (err) {
-      console.error(err);
+      logger.error("Error deleting message:", err);
       setIsDeleting(false);
     }
   };

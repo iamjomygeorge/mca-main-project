@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 import StatCard from "@/components/StatCard";
@@ -9,7 +8,6 @@ import { api } from "@/services/api.service";
 
 export default function AuthorDashboardPage() {
   const { token, user, loading: authLoading } = useAuth();
-  const router = useRouter();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,7 +30,6 @@ export default function AuthorDashboardPage() {
   useEffect(() => {
     if (token) {
       fetchStats();
-    } else if (!authLoading) {
     }
   }, [token, authLoading, fetchStats]);
 

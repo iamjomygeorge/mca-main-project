@@ -11,6 +11,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import Skeleton from "@/components/Skeleton";
 import { api } from "@/services/api.service";
 import { formatCurrency } from "@/utils/formatters";
+import logger from "@/utils/logger";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
@@ -92,7 +93,7 @@ export default function BookReaderPage() {
 
       const sessionId = new URL(checkoutUrl).searchParams.get("id");
       if (!sessionId) {
-        console.warn(
+        logger.warn(
           "Could not parse session ID from URL, redirecting to full URL."
         );
         window.location.href = checkoutUrl;
@@ -104,7 +105,7 @@ export default function BookReaderPage() {
       });
 
       if (stripeError) {
-        console.error("Stripe redirect error:", stripeError);
+        logger.error("Stripe redirect error:", stripeError);
         throw new Error(
           stripeError.message || "Failed to redirect to payment page."
         );

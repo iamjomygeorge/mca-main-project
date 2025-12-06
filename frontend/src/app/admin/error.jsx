@@ -2,10 +2,11 @@
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/Button";
+import logger from "@/utils/logger";
 
 export default function AdminError({ error, reset }) {
   useEffect(() => {
-    console.error("Admin Dashboard Error:", error);
+    logger.error("Admin Dashboard Error:", error);
   }, [error]);
 
   return (

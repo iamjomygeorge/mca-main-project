@@ -2,10 +2,11 @@
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/Button";
+import logger from "@/utils/logger";
 
 export default function AuthorError({ error, reset }) {
   useEffect(() => {
-    console.error("Author Dashboard Error:", error);
+    logger.error("Author Dashboard Error:", error);
   }, [error]);
 
   return (

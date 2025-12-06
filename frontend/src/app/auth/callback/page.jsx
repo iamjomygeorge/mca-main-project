@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Container from "@/components/Container";
 import { Icons } from "@/components/Icons";
+import logger from "@/utils/logger";
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -16,18 +17,18 @@ function AuthCallbackContent() {
     const error = searchParams.get("error");
 
     if (error) {
-      console.error("OAuth Callback Error:", error);
+      logger.error("OAuth Callback Error:", error);
       router.replace(`/login?error=${error}`);
     } else if (token) {
-      console.log("OAuth Callback: Token received, processing login...");
+      logger.info("OAuth Callback: Token received, processing login...");
       login(token);
     } else {
-      console.error(
+      logger.error(
         "OAuth Callback Error: No token or error parameter found in URL."
       );
       router.replace("/login?error=unknown_callback_error");
     }
-  }, []);
+  }, [searchParams, router, login]);
 
   return (
     <Container className="flex flex-col items-center justify-center min-h-[60vh] text-center py-12">
