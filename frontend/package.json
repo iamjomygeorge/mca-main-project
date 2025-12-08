@@ -11,7 +11,7 @@
   "dependencies": {
     "@stripe/stripe-js": "^8.1.0",
     "epubjs": "^0.3.93",
-    "next": "15.5.3",
+    "next": "^15.5.7",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
