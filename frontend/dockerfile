@@ -16,14 +16,18 @@ WORKDIR /app/frontend
 
 RUN npm run build
 
+RUN cp -r public .next/standalone/frontend/public
+RUN cp -r .next/static .next/standalone/frontend/.next/static
+
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001 -G nodejs
     
 RUN chown -R nextjs:nodejs .next
 
 ENV NODE_ENV=production
+ENV HOSTNAME="0.0.0.0"
 USER nextjs
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["node", ".next/standalone/frontend/server.js"]
