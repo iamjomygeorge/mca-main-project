@@ -1,6 +1,8 @@
 import logger from "@/utils/logger";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+  ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")
+  : "";
 
 class ApiService {
   async request(
@@ -26,7 +28,9 @@ class ApiService {
     }
 
     try {
-      const response = await fetch(`${API_URL}${endpoint}`, config);
+      const safeEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+
+      const response = await fetch(`${API_URL}${safeEndpoint}`, config);
 
       if (response.status === 401) {
         logger.warn(`Unauthorized access attempt to ${endpoint}`);

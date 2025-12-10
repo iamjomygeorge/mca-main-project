@@ -44,6 +44,12 @@ const validateEnvironment = () => {
     missing.forEach((key) => logger.fatal(`   - ${key}`));
     process.exit(1);
   }
+
+  if (process.env.FRONTEND_URL && process.env.FRONTEND_URL.endsWith("/")) {
+    logger.warn(
+      "CONFIGURATION WARNING: FRONTEND_URL ends with a slash '/'. This generally causes CORS errors as Origin headers do not contain trailing slashes."
+    );
+  }
 };
 
 module.exports = validateEnvironment;
