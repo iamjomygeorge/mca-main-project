@@ -9,13 +9,21 @@ const { getBaseUrl } = require("../../utils/url.utils");
 
 const router = express.Router();
 
-const generateProxyUrls = (book, req) => {
+const generateBookUrls = (book, req) => {
   const baseUrl = getBaseUrl(req);
+
+  let coverUrl = null;
+  if (book.cover_image_url) {
+    if (book.cover_image_url.startsWith("covers/")) {
+      coverUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${book.cover_image_url}`;
+    } else {
+      coverUrl = `${baseUrl}/api/books/${book.id}/cover`;
+    }
+  }
+
   return {
     ...book,
-    cover_image_url: book.cover_image_url
-      ? `${baseUrl}/api/books/${book.id}/cover`
-      : null,
+    cover_image_url: coverUrl,
     book_file_url: null,
   };
 };
@@ -38,7 +46,7 @@ router.get("/", async (req, res, next) => {
     );
 
     const transformedBooks = allBooks.rows.map((book) =>
-      generateProxyUrls(book, req)
+      generateBookUrls(book, req)
     );
     res.json(transformedBooks);
   } catch (err) {
@@ -61,7 +69,7 @@ router.get("/featured", async (req, res, next) => {
     );
 
     const transformedBooks = featuredBooks.rows.map((book) =>
-      generateProxyUrls(book, req)
+      generateBookUrls(book, req)
     );
     res.json(transformedBooks);
   } catch (err) {
@@ -83,6 +91,11 @@ router.get("/:id/cover", bookIdRules(), validate, async (req, res, next) => {
     }
 
     const s3Key = bookResult.rows[0].cover_image_url;
+
+    if (s3Key.startsWith("covers/")) {
+      const s3Url = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
+      return res.redirect(s3Url);
+    }
 
     let contentType = "image/jpeg";
     if (s3Key.match(/\.png$/i)) contentType = "image/png";
@@ -188,7 +201,11 @@ router.get(
       const baseUrl = getBaseUrl(req);
 
       if (bookData.cover_image_url) {
-        bookData.cover_image_url = `${baseUrl}/api/books/${bookId}/cover`;
+        if (bookData.cover_image_url.startsWith("covers/")) {
+          bookData.cover_image_url = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${bookData.cover_image_url}`;
+        } else {
+          bookData.cover_image_url = `${baseUrl}/api/books/${bookId}/cover`;
+        }
       }
 
       if (isOwned || isFree) {

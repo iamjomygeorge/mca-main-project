@@ -5,6 +5,8 @@ export default function BookCard({ book, isLibraryCard = false }) {
   const coverImage = book.cover_image_url || "/placeholder-cover.png";
   const bookUrl = isLibraryCard ? `/read/${book.id}` : `/books/${book.id}`;
 
+  const isPlaceholder = coverImage === "/placeholder-cover.png";
+
   return (
     <Link
       href={bookUrl}
@@ -19,7 +21,7 @@ export default function BookCard({ book, isLibraryCard = false }) {
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
             priority={!isLibraryCard}
-            unoptimized={coverImage === "/placeholder-cover.png"}
+            unoptimized={isPlaceholder}
           />
         </div>
         <div className="p-3 sm:p-4 flex flex-col flex-grow">

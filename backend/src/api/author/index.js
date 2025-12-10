@@ -18,12 +18,20 @@ router.use(authenticateToken, isAuthor);
 
 const transformBooks = (books, req) => {
   const baseUrl = getBaseUrl(req);
-  return books.map((book) => ({
-    ...book,
-    cover_image_url: book.cover_image_url
-      ? `${baseUrl}/api/books/${book.id}/cover`
-      : null,
-  }));
+  return books.map((book) => {
+    let coverUrl = null;
+    if (book.cover_image_url) {
+      if (book.cover_image_url.startsWith("covers/")) {
+        coverUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${book.cover_image_url}`;
+      } else {
+        coverUrl = `${baseUrl}/api/books/${book.id}/cover`;
+      }
+    }
+    return {
+      ...book,
+      cover_image_url: coverUrl,
+    };
+  });
 };
 
 router.get("/overview", async (req, res, next) => {

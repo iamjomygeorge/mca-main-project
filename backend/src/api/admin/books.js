@@ -94,12 +94,19 @@ router.post(
 
       const newBook = newBookResult.rows[0];
 
-      const baseUrl = getBaseUrl(req);
+      let coverUrl = null;
+      if (newBook.cover_image_url) {
+        if (newBook.cover_image_url.startsWith("covers/")) {
+          coverUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${newBook.cover_image_url}`;
+        } else {
+          const baseUrl = getBaseUrl(req);
+          coverUrl = `${baseUrl}/api/books/${newBook.id}/cover`;
+        }
+      }
+
       const responseBook = {
         ...newBook,
-        cover_image_url: newBook.cover_image_url
-          ? `${baseUrl}/api/books/${newBook.id}/cover`
-          : null,
+        cover_image_url: coverUrl,
         book_file_url: null,
       };
 
