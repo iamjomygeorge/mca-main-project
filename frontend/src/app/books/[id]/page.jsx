@@ -17,6 +17,10 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
 );
 
+const getEtherscanUrl = (txHash) => {
+  return `https://sepolia.etherscan.io/tx/${txHash}`;
+};
+
 export default function BookReaderPage() {
   const params = useParams();
   const { id } = params;
@@ -169,7 +173,40 @@ export default function BookReaderPage() {
           <h2 className="text-xl text-zinc-600 dark:text-zinc-400">
             by {bookData.author_name}
           </h2>
+
+          {bookData.blockchain_tx_hash && (
+            <div className="mt-4 mb-2">
+              <a
+                href={getEtherscanUrl(bookData.blockchain_tx_hash)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                Blockchain Verified
+                <span className="sr-only">View transaction on Etherscan</span>
+              </a>
+              {bookData.file_hash && (
+                <p className="mt-2 text-[10px] text-zinc-400 font-mono break-all max-w-md">
+                  Digital Fingerprint: {bookData.file_hash}
+                </p>
+              )}
+            </div>
+          )}
         </div>
+
         <div className="flex-shrink-0 w-full sm:w-auto">
           {!showReader ? (
             <button

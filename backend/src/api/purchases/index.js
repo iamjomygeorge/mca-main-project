@@ -5,6 +5,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const { purchaseInitiateRules } = require("./purchases.validator");
 const validate = require("../../middleware/validation.middleware");
+const { getBaseUrl } = require("../../utils/url.utils");
 
 const router = express.Router();
 
@@ -13,6 +14,24 @@ router.use(authenticateToken);
 const PLATFORM_COMMISSION_RATE = parseFloat(
   process.env.PLATFORM_COMMISSION_RATE
 );
+
+const transformLibraryBooks = (books, req) => {
+  const baseUrl = getBaseUrl(req);
+  return books.map((book) => {
+    let coverUrl = null;
+    if (book.cover_image_url) {
+      if (book.cover_image_url.startsWith("covers/")) {
+        coverUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${book.cover_image_url}`;
+      } else {
+        coverUrl = `${baseUrl}/api/books/${book.id}/cover`;
+      }
+    }
+    return {
+      ...book,
+      cover_image_url: coverUrl,
+    };
+  });
+};
 
 router.post(
   "/initiate",
@@ -140,7 +159,9 @@ router.get("/my-library", async (req, res, next) => {
       `SELECT
                b.id, b.title, b.description, b.cover_image_url, b.created_at, b.featured,
                a.name AS author_name,
-               ul.added_at
+               ul.added_at,
+               b.file_hash,
+               b.blockchain_tx_hash
              FROM user_library ul
              JOIN books b ON ul.book_id = b.id
              JOIN authors a ON b.author_id = a.id
@@ -148,7 +169,10 @@ router.get("/my-library", async (req, res, next) => {
              ORDER BY ul.added_at DESC`,
       [userId]
     );
-    res.json(libraryResult.rows);
+
+    const transformedBooks = transformLibraryBooks(libraryResult.rows, req);
+
+    res.json(transformedBooks);
   } catch (err) {
     req.log.error(err, "Get My Library Error");
     next(err);

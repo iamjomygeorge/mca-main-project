@@ -1,17 +1,63 @@
 const express = require("express");
 const pool = require("../../config/database");
+const fs = require("fs");
 const {
   upload,
   uploadFileToS3,
   deleteFileFromS3,
   cleanupLocalFile,
 } = require("../../services/storage.service");
+const {
+  calculateFileHash,
+  notarizeBook,
+  retryNotarizations,
+} = require("../../services/blockchain.service");
 
 const { bookUploadRules } = require("./admin.validator");
 const validate = require("../../middleware/validation.middleware");
 const { getBaseUrl } = require("../../utils/url.utils");
 
 const router = express.Router();
+
+router.post("/retry-notarization", async (req, res, next) => {
+  try {
+    const { limit = 10 } = req.body;
+
+    const result = await pool.query(
+      `SELECT id, file_hash FROM books 
+       WHERE (blockchain_tx_hash IS NULL OR blockchain_tx_hash = '') 
+       AND file_hash IS NOT NULL
+       LIMIT $1`,
+      [limit]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ message: "No books need notarization retry." });
+    }
+
+    const books = result.rows;
+    const retryResults = await retryNotarizations(books);
+
+    let successCount = 0;
+    for (const res of retryResults) {
+      if (res.txHash) {
+        await pool.query(
+          "UPDATE books SET blockchain_tx_hash = $1 WHERE id = $2",
+          [res.txHash, res.id]
+        );
+        successCount++;
+      }
+    }
+
+    res.json({
+      message: `Retried ${books.length} books. Successfully initiated: ${successCount}`,
+      details: retryResults,
+    });
+  } catch (err) {
+    req.log.error(err, "Retry Notarization Error");
+    next(err);
+  }
+});
 
 router.post(
   "/",
@@ -43,6 +89,8 @@ router.post(
       if (!bookFile) {
         return res.status(400).json({ error: "Book file (EPUB) is required." });
       }
+
+      const fileHash = await calculateFileHash(bookFile.path);
 
       await client.query("BEGIN");
 
@@ -86,8 +134,19 @@ router.post(
       }
 
       const newBookResult = await client.query(
-        "INSERT INTO books (title, description, author_id, book_file_url, cover_image_url) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-        [title, description, authorId, bookFileKey, coverImageKey]
+        `INSERT INTO books 
+          (title, description, author_id, book_file_url, cover_image_url, file_hash, blockchain_tx_hash) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7) 
+         RETURNING *`,
+        [
+          title,
+          description,
+          authorId,
+          bookFileKey,
+          coverImageKey,
+          fileHash,
+          null,
+        ]
       );
 
       await client.query("COMMIT");
@@ -104,13 +163,35 @@ router.post(
         }
       }
 
+      req.log.info({ bookId: newBook.id }, "Book created in DB.");
+
+      let finalTxHash = null;
+      try {
+        finalTxHash = await notarizeBook(fileHash);
+        if (finalTxHash) {
+          const updateResult = await pool.query(
+            "UPDATE books SET blockchain_tx_hash = $1 WHERE id = $2 RETURNING blockchain_tx_hash",
+            [finalTxHash, newBook.id]
+          );
+          req.log.info(
+            { bookId: newBook.id, txHash: finalTxHash },
+            "Blockchain hash updated."
+          );
+          newBook.blockchain_tx_hash = finalTxHash;
+        }
+      } catch (bcError) {
+        req.log.error(
+          bcError,
+          "Post-upload notarization failed. Book exists but has no txHash."
+        );
+      }
+
       const responseBook = {
         ...newBook,
         cover_image_url: coverUrl,
         book_file_url: null,
       };
 
-      req.log.info({ bookId: newBook.id }, "Admin uploaded classic book");
       res.status(201).json(responseBook);
     } catch (err) {
       await client.query("ROLLBACK");
