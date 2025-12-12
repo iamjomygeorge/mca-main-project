@@ -1,13 +1,14 @@
 const { Pool } = require("pg");
 const logger = require("./logger");
 
-const rejectUnauthorized = process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false";
+const sslConfig =
+  process.env.PGSSLMODE === "no-verify"
+    ? { rejectUnauthorized: false }
+    : { rejectUnauthorized: true };
 
 const connectionConfig = {
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: rejectUnauthorized,
-  },
+  ssl: sslConfig,
 };
 
 const pool = new Pool(connectionConfig);

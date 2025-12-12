@@ -8,7 +8,7 @@
     "migrate:create": "node-pg-migrate create",
     "migrate:up": "node-pg-migrate up",
     "migrate:down": "node-pg-migrate down",
-    "db:reset": "node-pg-migrate down --count=1000 && node-pg-migrate up",
+    "db:reset": "node scripts/reset-db.js && npm run migrate:up",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -16,6 +16,7 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@faker-js/faker": "^10.1.0",
     "dotenv": "^17.2.1",
     "node-pg-migrate": "^8.0.3",
     "nodemon": "^3.1.10",
