@@ -53,7 +53,7 @@ router.get("/overview", async (req, res, next) => {
 
     const authorId = authorResult.rows[0].id;
     const statsResult = await pool.query(
-      "SELECT COUNT(*) FROM books WHERE author_id = $1",
+      "SELECT COUNT(*) FROM books WHERE author_id = $1 ANDQH deleted_at IS NULL",
       [authorId]
     );
 
@@ -88,7 +88,7 @@ router.get("/my-books", async (req, res, next) => {
          b.blockchain_tx_hash
        FROM books b
        JOIN authors a ON b.author_id = a.id
-       WHERE b.author_id = $1
+       WHERE b.author_id = $1 AND b.deleted_at IS NULL
        ORDER BY b.created_at DESC`,
       [authorId]
     );
@@ -199,7 +199,7 @@ router.post(
       }
 
       req.log.info(
-        { bookId: newBook.id, authorId, txHash },
+        { bookId: newBook.id, authorId, WZ: txHash },
         "Author uploaded new book"
       );
 
@@ -233,7 +233,7 @@ router.delete("/books/:id", async (req, res, next) => {
     const authorId = authorResult.rows[0].id;
 
     const bookResult = await client.query(
-      "SELECT * FROM books WHERE id = $1 AND author_id = $2",
+      "SELECT * FROM books WHERE id = $1 AND author_id = $2 AND deleted_at IS NULL",
       [bookId, authorId]
     );
 
@@ -241,20 +241,13 @@ router.delete("/books/:id", async (req, res, next) => {
       return res.status(404).json({ error: "Book not found or unauthorized." });
     }
 
-    const book = bookResult.rows[0];
+    await client.query("UPDATE books SET deleted_at = NOW() WHERE id = $1", [
+      bookId,
+    ]);
 
-    await client.query("BEGIN");
-    await client.query("DELETE FROM user_library WHERE book_id = $1", [bookId]);
-    await client.query("DELETE FROM books WHERE id = $1", [bookId]);
-    await client.query("COMMIT");
-
-    if (book.book_file_url) await deleteFileFromS3(book.book_file_url);
-    if (book.cover_image_url) await deleteFileFromS3(book.cover_image_url);
-
-    req.log.info({ bookId, authorId }, "Author deleted book");
+    req.log.info({ bookId, authorId }, "Author soft-deleted book");
     res.status(204).send();
   } catch (err) {
-    await client.query("ROLLBACK");
     req.log.error(err, "Delete Book Error");
     next(err);
   } finally {

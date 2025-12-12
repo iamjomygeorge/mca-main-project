@@ -40,6 +40,7 @@ router.get("/", async (req, res, next) => {
          a.name AS author_name
        FROM books b
        JOIN authors a ON b.author_id = a.id
+       WHERE b.deleted_at IS NULL
        ORDER BY b.created_at DESC
        LIMIT $1 OFFSET $2`,
       [limit, offset]
@@ -63,7 +64,7 @@ router.get("/featured", async (req, res, next) => {
          a.name AS author_name
        FROM books b
        JOIN authors a ON b.author_id = a.id
-       WHERE b.featured = true
+       WHERE b.featured = true AND b.deleted_at IS NULL
        ORDER BY b.created_at DESC
        LIMIT 10`
     );
@@ -195,6 +196,10 @@ router.get(
         if (ownershipCheck.rows.length > 0) {
           isOwned = true;
         }
+      }
+
+      if (bookData.deleted_at && !isOwned) {
+        return res.status(404).json({ error: "This book has been removed." });
       }
 
       const isFree = parseFloat(bookData.price) <= 0;

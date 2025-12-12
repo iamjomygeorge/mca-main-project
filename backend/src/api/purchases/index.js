@@ -56,12 +56,15 @@ router.post(
       }
 
       const bookResult = await client.query(
-        "SELECT title, price, currency FROM books WHERE id = $1",
+        "SELECT title, price, currency FROM books WHERE id = $1 AND deleted_at IS NULL",
         [bookId]
       );
+
       if (bookResult.rows.length === 0) {
         await client.query("ROLLBACK");
-        return res.status(404).json({ error: "Book not found." });
+        return res
+          .status(404)
+          .json({ error: "Book not found or unavailable." });
       }
       const {
         title: bookTitle,
