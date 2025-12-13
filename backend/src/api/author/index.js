@@ -2,7 +2,6 @@ const express = require("express");
 const pool = require("../../config/database");
 const authenticateToken = require("../../middleware/auth.middleware");
 const isAuthor = require("../../middleware/author.middleware");
-const fs = require("fs");
 const {
   upload,
   uploadFileToS3,
@@ -53,7 +52,7 @@ router.get("/overview", async (req, res, next) => {
 
     const authorId = authorResult.rows[0].id;
     const statsResult = await pool.query(
-      "SELECT COUNT(*) FROM books WHERE author_id = $1 ANDQH deleted_at IS NULL",
+      "SELECT COUNT(*) FROM books WHERE author_id = $1",
       [authorId]
     );
 
@@ -85,10 +84,12 @@ router.get("/my-books", async (req, res, next) => {
          b.id, b.title, b.description, b.cover_image_url, b.created_at, b.featured,
          a.name AS author_name,
          b.file_hash, 
-         b.blockchain_tx_hash
+         b.blockchain_tx_hash,
+         b.genre,
+         b.page_count
        FROM books b
        JOIN authors a ON b.author_id = a.id
-       WHERE b.author_id = $1 AND b.deleted_at IS NULL
+       WHERE b.author_id = $1
        ORDER BY b.created_at DESC`,
       [authorId]
     );
@@ -128,7 +129,8 @@ router.post(
       }
 
       const authorId = authorResult.rows[0].id;
-      const { title, description, price, currency } = req.body;
+      const { title, description, price, currency, genre, pageCount } =
+        req.body;
 
       if (!bookFile)
         return res
@@ -157,8 +159,8 @@ router.post(
 
       const newBookResult = await client.query(
         `INSERT INTO books
-           (author_id, title, description, book_file_url, cover_image_url, price, currency, file_hash, blockchain_tx_hash)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           (author_id, title, description, book_file_url, cover_image_url, price, currency, file_hash, blockchain_tx_hash, genre, page_count, is_simulated)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          RETURNING *`,
         [
           authorId,
@@ -170,6 +172,9 @@ router.post(
           finalCurrency,
           fileHash,
           null,
+          genre || null,
+          pageCount || 300,
+          false,
         ]
       );
       const newBook = newBookResult.rows[0];
@@ -199,7 +204,7 @@ router.post(
       }
 
       req.log.info(
-        { bookId: newBook.id, authorId, WZ: txHash },
+        { bookId: newBook.id, authorId, txHash },
         "Author uploaded new book"
       );
 
@@ -233,7 +238,7 @@ router.delete("/books/:id", async (req, res, next) => {
     const authorId = authorResult.rows[0].id;
 
     const bookResult = await client.query(
-      "SELECT * FROM books WHERE id = $1 AND author_id = $2 AND deleted_at IS NULL",
+      "SELECT * FROM books WHERE id = $1 AND author_id = $2",
       [bookId, authorId]
     );
 
@@ -241,13 +246,20 @@ router.delete("/books/:id", async (req, res, next) => {
       return res.status(404).json({ error: "Book not found or unauthorized." });
     }
 
-    await client.query("UPDATE books SET deleted_at = NOW() WHERE id = $1", [
-      bookId,
-    ]);
+    const book = bookResult.rows[0];
 
-    req.log.info({ bookId, authorId }, "Author soft-deleted book");
+    await client.query("BEGIN");
+    await client.query("DELETE FROM user_library WHERE book_id = $1", [bookId]);
+    await client.query("DELETE FROM books WHERE id = $1", [bookId]);
+    await client.query("COMMIT");
+
+    if (book.book_file_url) await deleteFileFromS3(book.book_file_url);
+    if (book.cover_image_url) await deleteFileFromS3(book.cover_image_url);
+
+    req.log.info({ bookId, authorId }, "Author deleted book");
     res.status(204).send();
   } catch (err) {
+    await client.query("ROLLBACK");
     req.log.error(err, "Delete Book Error");
     next(err);
   } finally {

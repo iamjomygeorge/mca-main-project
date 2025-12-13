@@ -18,6 +18,11 @@ const bookUploadRules = () => {
       .isLength({ min: 3, max: 3 })
       .withMessage("Currency must be a 3-letter code (e.g., INR).")
       .toUpperCase(),
+    body("genre").optional().trim().escape(),
+    body("pageCount")
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage("Page count must be a positive integer."),
   ];
 };
 

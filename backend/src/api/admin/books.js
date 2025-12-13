@@ -84,6 +84,8 @@ router.post(
         description,
         authorId: existingAuthorId,
         newAuthorName,
+        genre,
+        pageCount,
       } = req.body;
 
       if (!bookFile) {
@@ -106,8 +108,8 @@ router.post(
           authorId = existingAuthorResult.rows[0].id;
         } else {
           const newAuthorResult = await client.query(
-            "INSERT INTO authors (name) VALUES ($1) RETURNING id",
-            [newAuthorName.trim()]
+            "INSERT INTO authors (name, is_simulated) VALUES ($1, $2) RETURNING id",
+            [newAuthorName.trim(), false]
           );
           authorId = newAuthorResult.rows[0].id;
         }
@@ -135,8 +137,8 @@ router.post(
 
       const newBookResult = await client.query(
         `INSERT INTO books 
-          (title, description, author_id, book_file_url, cover_image_url, file_hash, blockchain_tx_hash) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7) 
+          (title, description, author_id, book_file_url, cover_image_url, file_hash, blockchain_tx_hash, genre, page_count, is_simulated) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
          RETURNING *`,
         [
           title,
@@ -146,6 +148,9 @@ router.post(
           coverImageKey,
           fileHash,
           null,
+          genre || null,
+          pageCount || 300,
+          false,
         ]
       );
 
@@ -169,7 +174,7 @@ router.post(
       try {
         finalTxHash = await notarizeBook(fileHash);
         if (finalTxHash) {
-          const updateResult = await pool.query(
+          await pool.query(
             "UPDATE books SET blockchain_tx_hash = $1 WHERE id = $2 RETURNING blockchain_tx_hash",
             [finalTxHash, newBook.id]
           );

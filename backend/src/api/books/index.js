@@ -14,7 +14,9 @@ const generateBookUrls = (book, req) => {
 
   let coverUrl = null;
   if (book.cover_image_url) {
-    if (book.cover_image_url.startsWith("covers/")) {
+    if (book.cover_image_url.startsWith("http")) {
+      coverUrl = book.cover_image_url;
+    } else if (book.cover_image_url.startsWith("covers/")) {
       coverUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${book.cover_image_url}`;
     } else {
       coverUrl = `${baseUrl}/api/books/${book.id}/cover`;
@@ -36,11 +38,11 @@ router.get("/", async (req, res, next) => {
 
     const allBooks = await pool.query(
       `SELECT
-         b.id, b.title, b.description, b.cover_image_url, b.created_at, b.featured,
+         b.id, b.title, b.description, b.cover_image_url, b.created_at, 
+         b.featured, b.genre, b.page_count, b.is_simulated,
          a.name AS author_name
        FROM books b
        JOIN authors a ON b.author_id = a.id
-       WHERE b.deleted_at IS NULL
        ORDER BY b.created_at DESC
        LIMIT $1 OFFSET $2`,
       [limit, offset]
@@ -60,11 +62,12 @@ router.get("/featured", async (req, res, next) => {
   try {
     const featuredBooks = await pool.query(
       `SELECT
-         b.id, b.title, b.description, b.cover_image_url, b.created_at, b.featured,
+         b.id, b.title, b.description, b.cover_image_url, b.created_at, 
+         b.featured, b.genre, b.page_count, b.is_simulated,
          a.name AS author_name
        FROM books b
        JOIN authors a ON b.author_id = a.id
-       WHERE b.featured = true AND b.deleted_at IS NULL
+       WHERE b.featured = true
        ORDER BY b.created_at DESC
        LIMIT 10`
     );
@@ -92,6 +95,10 @@ router.get("/:id/cover", bookIdRules(), validate, async (req, res, next) => {
     }
 
     const s3Key = bookResult.rows[0].cover_image_url;
+
+    if (s3Key.startsWith("http")) {
+      return res.redirect(s3Key);
+    }
 
     if (s3Key.startsWith("covers/")) {
       const s3Url = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
@@ -152,6 +159,10 @@ router.get("/:id/content", bookIdRules(), validate, async (req, res, next) => {
       }
     }
 
+    if (book.book_file_url.startsWith("http")) {
+      return res.redirect(book.book_file_url);
+    }
+
     const fileStream = await getFileStream(book.book_file_url);
     res.setHeader("Content-Type", "application/epub+zip");
     fileStream.pipe(res);
@@ -198,15 +209,12 @@ router.get(
         }
       }
 
-      if (bookData.deleted_at && !isOwned) {
-        return res.status(404).json({ error: "This book has been removed." });
-      }
-
       const isFree = parseFloat(bookData.price) <= 0;
       const baseUrl = getBaseUrl(req);
 
       if (bookData.cover_image_url) {
-        if (bookData.cover_image_url.startsWith("covers/")) {
+        if (bookData.cover_image_url.startsWith("http")) {
+        } else if (bookData.cover_image_url.startsWith("covers/")) {
           bookData.cover_image_url = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${bookData.cover_image_url}`;
         } else {
           bookData.cover_image_url = `${baseUrl}/api/books/${bookId}/cover`;

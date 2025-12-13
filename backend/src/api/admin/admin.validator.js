@@ -37,6 +37,11 @@ const bookUploadRules = () => {
       .isLength({ min: 2 })
       .withMessage("New Author Name must be at least 2 characters.")
       .escape(),
+    body("genre").optional().trim().escape(),
+    body("pageCount")
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage("Page count must be a positive integer."),
     body().custom((value, { req }) => {
       if (!req.body.authorId && !req.body.newAuthorName) {
         throw new Error(
