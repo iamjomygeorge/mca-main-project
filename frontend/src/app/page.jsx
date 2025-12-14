@@ -1,24 +1,30 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Container from "@/components/Container";
 import BookCard from "@/components/BookCard";
 import { Icons } from "@/components/Icons";
+import { api } from "@/services/api.service";
 
-async function getFeaturedBooks() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+export default function Home() {
+  const [featuredBooks, setFeaturedBooks] = useState([]);
 
-  const res = await fetch(`${apiUrl}/api/books/featured`, {
-    cache: "no-store",
-  });
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        const data = await api.get("/api/books/featured");
+        if (Array.isArray(data)) {
+          setFeaturedBooks(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch featured books:", error);
+      }
+    };
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch featured books");
-  }
+    fetchFeatured();
+  }, []);
 
-  return res.json();
-}
-
-export default async function Home() {
-  const featuredBooks = await getFeaturedBooks();
   const displayBooks = featuredBooks.slice(0, 4);
 
   return (
