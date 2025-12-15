@@ -119,7 +119,7 @@ router.get("/:id/cover", bookIdRules(), validate, async (req, res, next) => {
   }
 });
 
-router.get("/:id/content", bookIdRules(), validate, async (req, res, next) => {
+router.get("/:id/content.epub", bookIdRules(), validate, async (req, res, next) => {
   const { id: bookId } = req.params;
   const token = req.query.token;
   let userId = null;
@@ -225,7 +225,7 @@ router.get(
         const token = req.headers["authorization"]
           ? req.headers["authorization"].split(" ")[1]
           : "";
-        bookData.book_file_url = `${baseUrl}/api/books/${bookId}/content?token=${token}`;
+        bookData.book_file_url = `${baseUrl}/api/books/${bookId}/content.epub?token=${token}`;
       } else {
         delete bookData.book_file_url;
       }

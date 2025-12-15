@@ -10,10 +10,10 @@
   },
   "dependencies": {
     "@stripe/stripe-js": "^8.1.0",
-    "epubjs": "^0.3.93",
     "next": "^15.5.7",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "react-reader": "^2.0.15"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
