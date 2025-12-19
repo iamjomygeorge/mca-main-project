@@ -119,6 +119,13 @@ exports.login = async (req, res, next) => {
       return res.status(401).json({ error: "Invalid credentials." });
     }
 
+    if (user.is_banned) {
+      req.log.warn({ email }, "Login attempt by banned user");
+      return res.status(403).json({
+        error: "Your account has been suspended. Please contact support.",
+      });
+    }
+
     if (user.auth_method === "google" && !user.password_hash) {
       return res.status(401).json({
         error: "This account uses Google Sign-In. Please log in using Google.",
@@ -208,6 +215,12 @@ exports.login2fa = async (req, res, next) => {
       return res.status(400).json({ error: "2FA not initiated." });
     }
 
+    if (user.is_banned) {
+      return res.status(403).json({
+        error: "Your account has been suspended. Please contact support.",
+      });
+    }
+
     if (new Date() > new Date(user.two_factor_otp_expiry)) {
       return res.status(400).json({ error: "Verification code expired." });
     }
@@ -255,7 +268,7 @@ exports.refresh = async (req, res, next) => {
       .digest("hex");
 
     const result = await client.query(
-      `SELECT rt.*, u.role 
+      `SELECT rt.*, u.role, u.is_banned 
        FROM refresh_tokens rt
        JOIN users u ON rt.user_id = u.id
        WHERE rt.token_hash = $1 AND rt.expires_at > NOW()`,
@@ -270,6 +283,13 @@ exports.refresh = async (req, res, next) => {
     }
 
     const tokenRecord = result.rows[0];
+
+    if (tokenRecord.is_banned) {
+      res.clearCookie("refreshToken");
+      return res
+        .status(403)
+        .json({ error: "Your account has been suspended." });
+    }
 
     const payload = { userId: tokenRecord.user_id, role: tokenRecord.role };
 
@@ -394,6 +414,13 @@ exports.googleCallback = async (req, res) => {
         );
         user = newUser.rows[0];
       }
+    }
+
+    if (user.is_banned) {
+      await client.query("ROLLBACK");
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/login?error=account_suspended`
+      );
     }
 
     if (user.role !== "READER") {
