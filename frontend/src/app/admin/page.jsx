@@ -4,16 +4,20 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/Icons";
 import StatCard from "@/components/StatCard";
+import AnalyticsChart from "@/components/AnalyticsChart";
+import RecentTransactions from "@/components/RecentTransactions";
 import { api } from "@/services/api.service";
 
 export default function AdminDashboardPage() {
   const { token } = useAuth();
   const [stats, setStats] = useState(null);
+  const [charts, setCharts] = useState(null);
+  const [transactions, setTransactions] = useState([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchStats = useCallback(async () => {
+  const fetchDashboardData = useCallback(async () => {
     if (!token) return;
 
     if (!isInitialLoading) {
@@ -21,8 +25,15 @@ export default function AdminDashboardPage() {
     }
 
     try {
-      const data = await api.get("/api/admin/stats/overview", { token });
-      setStats(data);
+      const [statsData, chartsData, transactionsData] = await Promise.all([
+        api.get("/api/admin/stats/overview", { token }),
+        api.get("/api/admin/stats/charts", { token }),
+        api.get("/api/admin/stats/recent-activity", { token }),
+      ]);
+
+      setStats(statsData);
+      setCharts(chartsData);
+      setTransactions(transactionsData);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -36,9 +47,9 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (token) {
-      fetchStats();
+      fetchDashboardData();
     }
-  }, [token, fetchStats]);
+  }, [token, fetchDashboardData]);
 
   const displayValue = (statValue) => {
     if (error && !stats) return "-";
@@ -46,18 +57,18 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="mt-2 text-zinc-500 dark:text-zinc-400">
-            Here's a snapshot of the platform.
+            Overview of platform performance and metrics.
           </p>
         </div>
         <button
-          onClick={fetchStats}
+          onClick={fetchDashboardData}
           disabled={isRefreshing}
-          className="p-2 rounded-full text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-2 rounded-full text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           aria-label="Refresh stats"
         >
           <Icons.refresh
@@ -94,6 +105,35 @@ export default function AdminDashboardPage() {
           loading={isInitialLoading}
         />
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {isInitialLoading ? (
+          <>
+            <div className="h-[350px] bg-zinc-100 dark:bg-zinc-900 rounded-xl animate-pulse" />
+            <div className="h-[350px] bg-zinc-100 dark:bg-zinc-900 rounded-xl animate-pulse" />
+          </>
+        ) : (
+          <>
+            <AnalyticsChart
+              title="Revenue (Last 30 Days)"
+              data={charts?.revenue || []}
+              color="#10b981"
+              valuePrefix="₹"
+            />
+            <AnalyticsChart
+              title="New User Registrations"
+              data={charts?.users || []}
+              color="#3b82f6"
+            />
+          </>
+        )}
+      </div>
+
+      {!isInitialLoading && (
+        <div className="mt-8">
+          <RecentTransactions transactions={transactions} />
+        </div>
+      )}
     </div>
   );
 }
