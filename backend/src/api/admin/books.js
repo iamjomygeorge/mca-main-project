@@ -1,6 +1,6 @@
 const express = require("express");
+const router = express.Router();
 const pool = require("../../config/database");
-const fs = require("fs");
 const {
   upload,
   uploadFileToS3,
@@ -12,17 +12,99 @@ const {
   notarizeBook,
   retryNotarizations,
 } = require("../../services/blockchain.service");
-
 const { bookUploadRules } = require("./admin.validator");
 const validate = require("../../middleware/validation.middleware");
-const { getBaseUrl } = require("../../utils/url.utils");
+const { getBaseUrl, generateProxyUrl } = require("../../utils/url.utils");
 
-const router = express.Router();
+router.get("/", async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, search = "", type } = req.query;
+    const offset = (page - 1) * limit;
+
+    let query = `
+      SELECT b.id, b.title, b.genre as category, b.price, b.is_simulated as is_community, b.created_at, b.cover_image_url,
+             a.name as author_name,
+             (SELECT COUNT(*) FROM purchases WHERE book_id = b.id AND status = 'COMPLETED') as sales_count
+      FROM books b
+      LEFT JOIN authors a ON b.author_id = a.id
+      WHERE b.deleted_at IS NULL
+    `;
+
+    const params = [];
+    let paramCount = 1;
+
+    if (search) {
+      query += ` AND (b.title ILIKE $${paramCount} OR a.name ILIKE $${paramCount})`;
+      params.push(`%${search}%`);
+      paramCount++;
+    }
+
+    if (type === "classic") {
+      query += ` AND b.is_simulated = false`;
+    } else if (type === "community") {
+      query += ` AND b.is_simulated = true`;
+    }
+
+    const countQuery = `SELECT COUNT(*) FROM (${query}) as temp`;
+    const totalResult = await pool.query(countQuery, params);
+    const total = parseInt(totalResult.rows[0].count, 10);
+
+    query += ` ORDER BY b.created_at DESC LIMIT $${paramCount} OFFSET $${
+      paramCount + 1
+    }`;
+    params.push(limit, offset);
+
+    const result = await pool.query(query, params);
+
+    const books = result.rows.map((book) => ({
+      ...book,
+      cover_image_url: generateProxyUrl(book.cover_image_url, req),
+      is_classic: !book.is_community,
+      status: "PUBLISHED",
+    }));
+
+    res.json({
+      books,
+      pagination: {
+        total,
+        page: parseInt(page, 10),
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    req.log.error(error, "Error fetching books");
+    next(error);
+  }
+});
+
+router.delete("/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      "UPDATE books SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id",
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Book not found or already deleted" });
+    }
+
+    req.log.info(
+      { bookId: id, adminId: req.user.userId },
+      "Book soft deleted by admin"
+    );
+    res.json({ message: "Book deleted successfully" });
+  } catch (error) {
+    req.log.error(error, "Error deleting book");
+    next(error);
+  }
+});
 
 router.post("/retry-notarization", async (req, res, next) => {
   try {
     const { limit = 10 } = req.body;
-
     const result = await pool.query(
       `SELECT id, file_hash FROM books 
        WHERE (blockchain_tx_hash IS NULL OR blockchain_tx_hash = '') 
@@ -69,7 +151,6 @@ router.post(
   validate,
   async (req, res, next) => {
     const client = await pool.connect();
-
     let bookFileKey = null;
     let coverImageKey = null;
 
@@ -93,17 +174,14 @@ router.post(
       }
 
       const fileHash = await calculateFileHash(bookFile.path);
-
       await client.query("BEGIN");
 
       let authorId = existingAuthorId;
-
       if (newAuthorName) {
         const existingAuthorResult = await client.query(
           "SELECT id FROM authors WHERE LOWER(name) = LOWER($1)",
           [newAuthorName.trim()]
         );
-
         if (existingAuthorResult.rows.length > 0) {
           authorId = existingAuthorResult.rows[0].id;
         } else {
@@ -115,9 +193,7 @@ router.post(
         }
       }
 
-      if (!authorId) {
-        throw new Error("Could not determine author ID.");
-      }
+      if (!authorId) throw new Error("Could not determine author ID.");
 
       bookFileKey = await uploadFileToS3(
         bookFile.path,
@@ -125,7 +201,6 @@ router.post(
         bookFile.mimetype,
         "books/classic"
       );
-
       if (coverImageFile) {
         coverImageKey = await uploadFileToS3(
           coverImageFile.path,
@@ -155,45 +230,25 @@ router.post(
       );
 
       await client.query("COMMIT");
-
       const newBook = newBookResult.rows[0];
-
-      let coverUrl = null;
-      if (newBook.cover_image_url) {
-        if (newBook.cover_image_url.startsWith("covers/")) {
-          coverUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${newBook.cover_image_url}`;
-        } else {
-          const baseUrl = getBaseUrl(req);
-          coverUrl = `${baseUrl}/api/books/${newBook.id}/cover`;
-        }
-      }
 
       req.log.info({ bookId: newBook.id }, "Book created in DB.");
 
-      let finalTxHash = null;
       try {
-        finalTxHash = await notarizeBook(fileHash);
+        const finalTxHash = await notarizeBook(fileHash);
         if (finalTxHash) {
           await pool.query(
-            "UPDATE books SET blockchain_tx_hash = $1 WHERE id = $2 RETURNING blockchain_tx_hash",
+            "UPDATE books SET blockchain_tx_hash = $1 WHERE id = $2",
             [finalTxHash, newBook.id]
           );
-          req.log.info(
-            { bookId: newBook.id, txHash: finalTxHash },
-            "Blockchain hash updated."
-          );
-          newBook.blockchain_tx_hash = finalTxHash;
         }
       } catch (bcError) {
-        req.log.error(
-          bcError,
-          "Post-upload notarization failed. Book exists but has no txHash."
-        );
+        req.log.error(bcError, "Post-upload notarization failed.");
       }
 
       const responseBook = {
         ...newBook,
-        cover_image_url: coverUrl,
+        cover_image_url: generateProxyUrl(newBook.cover_image_url, req),
         book_file_url: null,
       };
 
@@ -201,10 +256,8 @@ router.post(
     } catch (err) {
       await client.query("ROLLBACK");
       req.log.error(err, "Admin Book Upload Error");
-
       if (bookFileKey) await deleteFileFromS3(bookFileKey);
       if (coverImageKey) await deleteFileFromS3(coverImageKey);
-
       next(err);
     } finally {
       if (bookFile) await cleanupLocalFile(bookFile.path);
