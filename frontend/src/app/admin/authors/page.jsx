@@ -7,7 +7,7 @@ import { api } from "@/services/api.service";
 import { Icons } from "@/components/Icons";
 import { format } from "date-fns";
 
-export default function UsersPage() {
+export default function AuthorsPage() {
   const { token } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,14 +27,14 @@ export default function UsersPage() {
         page: pagination.page,
         limit: 10,
         search: debouncedSearch,
-        role: "READER",
+        role: "AUTHOR",
       }).toString();
 
       const data = await api.get(`/api/admin/users?${query}`, { token });
       setUsers(data.users);
       setPagination(data.pagination);
     } catch (error) {
-      console.error("Failed to fetch users", error);
+      console.error("Failed to fetch authors", error);
     } finally {
       setLoading(false);
     }
@@ -52,9 +52,9 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">User Management</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Author Management</h1>
           <p className="text-zinc-500 dark:text-zinc-400">
-            Monitor and manage registered readers.
+            Monitor and manage registered authors.
           </p>
         </div>
         <div className="relative">
@@ -74,7 +74,7 @@ export default function UsersPage() {
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-zinc-500 uppercase bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
               <tr>
-                <th className="px-6 py-4 font-medium">User</th>
+                <th className="px-6 py-4 font-medium">Author</th>
                 <th className="px-6 py-4 font-medium">Status</th>
                 <th className="px-6 py-4 font-medium">Purchases</th>
                 <th className="px-6 py-4 font-medium">Joined</th>
@@ -106,7 +106,7 @@ export default function UsersPage() {
                     colSpan={5}
                     className="px-6 py-12 text-center text-zinc-500"
                   >
-                    No users found matching your search.
+                    No authors found matching your search.
                   </td>
                 </tr>
               ) : (
